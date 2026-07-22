@@ -8,7 +8,7 @@
     <div class="py-12 bg-sky-50/60 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            <div class="bg-white/80 backdrop-blur-md shadow-sm sm:rounded-2xl border border-sky-100 p-6 flex justify-between items-center">
+            <div class="bg-white/90 backdrop-blur-md shadow-sm sm:rounded-2xl border border-sky-100 p-6 flex justify-between items-center">
                 <div>
                     <p class="text-xs font-bold text-sky-600 uppercase tracking-wider">Karyawan</p>
                     <p class="font-black text-xl text-slate-800 mt-0.5">{{ $user->name }}</p>
@@ -58,7 +58,7 @@
         </div>
     </div>
 
-    <div id="custom-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden">
+    <div id="custom-confirm-modal" class="fixed inset-0 z-50 items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden">
         <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl border border-sky-100 text-center transform transition-all">
             <div class="w-16 h-16 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
                 📋
@@ -108,7 +108,7 @@
                 emptyState.style.display = 'none';
 
                 const taskHtml = `
-                    <div class="border border-sky-200 p-4 rounded-xl bg-sky-50/80 flex justify-between items-center task-item shadow-sm transition hover:shadow">
+                    <div class="border border-sky-200 p-4 rounded-xl bg-sky-50/80 flex justify-between items-center task-item shadow-sm transition hover:shadow" data-task-id="${taskId}" data-task-name="${taskName}">
                         <div class="font-bold text-slate-800 flex-1 flex items-center gap-3">
                             <span class="w-2 h-2 rounded-full bg-sky-400"></span>
                             ${taskName}

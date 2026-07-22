@@ -12,6 +12,11 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
         $shiftId = $user->shift_id;
         $today = Carbon::today('Asia/Jakarta')->toDateString();
 
@@ -33,13 +38,11 @@ class DashboardController extends Controller
             $submitDeadlineTime = '--:--';
         }
 
-        // Cek apakah hari ini sudah ada laporan yang completed
         $todayReportCompleted = Report::where('user_id', $user->id)
             ->where('report_date', $today)
             ->where('status', 'completed')
             ->exists();
 
-        // Cek apakah ada laporan yang masih statusnya planned (sedang berjalan)
         $todayReportPlanned = Report::where('user_id', $user->id)
             ->where('report_date', $today)
             ->where('status', 'planned')
