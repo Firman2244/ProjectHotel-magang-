@@ -2,24 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Report extends Model
 {
-    protected $guarded = [];
+    use HasFactory;
 
-    public function hotel()
-    {
-        return $this->belongsTo(Hotel::class);
-    }
+    protected $guarded = [];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function task()
+    public function items()
     {
-        return $this->belongsTo(Task::class);
+        return $this->hasMany(ReportItem::class);
     }
 }

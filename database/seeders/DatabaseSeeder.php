@@ -43,9 +43,9 @@ class DatabaseSeeder extends Seeder
             'shift_id' => $shift1->id,
         ]);
 
-        // 5. Masukkan Data Task Baku dari 6 Departemen (Pak Ridwan)
+
         Task::insert([
-            // Front Office
+
             ['department' => 'Front Office', 'name' => 'Briefing pagi dan pembagian tugas', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Front Office', 'name' => 'Mengecek occupancy, arrival, departure, dan in-house guest', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Front Office', 'name' => 'Proses check-in tamu', 'created_at' => now(), 'updated_at' => now()],
@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
             ['department' => 'Front Office', 'name' => 'Membuat laporan shift', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Front Office', 'name' => 'Serah terima antar shift', 'created_at' => now(), 'updated_at' => now()],
 
-            // Housekeeping
+
             ['department' => 'Housekeeping', 'name' => 'Morning briefing', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Housekeeping', 'name' => 'Pembagian room attendant dan area public area', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Housekeeping', 'name' => 'Membersihkan kamar check-out', 'created_at' => now(), 'updated_at' => now()],
@@ -79,7 +79,7 @@ class DatabaseSeeder extends Seeder
             ['department' => 'Housekeeping', 'name' => 'Melaporkan kerusakan kamar kepada Engineering', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Housekeeping', 'name' => 'Update room status ke Front Office', 'created_at' => now(), 'updated_at' => now()],
 
-            // Food & Beverage Service
+
             ['department' => 'Food & Beverage Service', 'name' => 'Briefing sebelum operasional', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Service', 'name' => 'Menyiapkan restoran sebelum buka', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Service', 'name' => 'Menata meja (table setting)', 'created_at' => now(), 'updated_at' => now()],
@@ -96,7 +96,7 @@ class DatabaseSeeder extends Seeder
             ['department' => 'Food & Beverage Service', 'name' => 'Closing kasir restoran', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Service', 'name' => 'Membersihkan seluruh peralatan pelayanan', 'created_at' => now(), 'updated_at' => now()],
 
-            // Food & Beverage Product (Kitchen)
+
             ['department' => 'Food & Beverage Product (Kitchen)', 'name' => 'Briefing dapur', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Product (Kitchen)', 'name' => 'Menerima bahan baku', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Product (Kitchen)', 'name' => 'Mengecek kualitas bahan makanan', 'created_at' => now(), 'updated_at' => now()],
