@@ -151,10 +151,12 @@
                     return;
                 }
                 confirmModal.classList.remove('hidden');
+                confirmModal.classList.add('flex');
             });
 
             modalBtnCancel.addEventListener('click', function() {
                 confirmModal.classList.add('hidden');
+                confirmModal.classList.remove('flex');
             });
 
             modalBtnConfirm.addEventListener('click', function() {

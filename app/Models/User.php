@@ -13,6 +13,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'hotel_id',
+        'shift_id',
         'name',
         'email',
         'password',
@@ -33,9 +34,10 @@ class User extends Authenticatable
         ];
     }
 
-    public function hotel()
+    // NAMA RELASI DIUBAH JADI branch AGAR TIDAK BENTROK DENGAN KOLOM hotel
+    public function branch()
     {
-        return $this->belongsTo(Hotel::class);
+        return $this->belongsTo(Hotel::class, 'hotel_id');
     }
 
     public function reports()

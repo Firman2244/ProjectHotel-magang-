@@ -7,7 +7,6 @@ use App\Models\Task;
 use App\Models\Report;
 use App\Models\ReportItem;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class ReportController extends Controller
@@ -171,38 +170,30 @@ class ReportController extends Controller
             }
         }
 
-        // Kalkulasi keterlambatan saat submit laporan akhir (30 menit sebelum jam pulang)
         $now = Carbon::now('Asia/Jakarta');
         $shiftId = $report->shift_id;
         $isLateSubmit = false;
 
         if ($shiftId == 1) {
-            // Shift 1 pulang jam 16:00, batas akhir submit jam 15:30
             $submitDeadline = Carbon::today('Asia/Jakarta')->setHour(15)->setMinute(30);
             $isLateSubmit = $now->greaterThan($submitDeadline);
         } elseif ($shiftId == 2) {
-            // Shift 2 pulang jam 22:00, batas akhir submit jam 21:30
             $submitDeadline = Carbon::today('Asia/Jakarta')->setHour(21)->setMinute(30);
             $isLateSubmit = $now->greaterThan($submitDeadline);
         } elseif ($shiftId == 3) {
-            // Shift 3 pulang jam 07:00, batas akhir submit jam 06:30
             $submitDeadline = Carbon::today('Asia/Jakarta')->setHour(6)->setMinute(30);
             if ($now->hour >= 12) {
-                // Jika submit dilakukan di malam hari sebelum hari berganti
                 $submitDeadline->addDay();
             }
             $isLateSubmit = $now->greaterThan($submitDeadline);
         }
 
-        // Jika saat pagi hari sudah terlambat, atau saat akhir shift terlambat, set is_late menjadi true
-        $finalIsLate = $report->is_late || $isLateSubmit;
-
         $report->update([
-            'status'  => 'completed',
-            'is_late' => $finalIsLate,
+            'status'         => 'completed',
+            'is_late_submit' => $isLateSubmit,
         ]);
 
-        $msg = $finalIsLate ? 'Laporan akhir shift berhasil disubmit, namun tercatat TERLAMBAT!' : 'Laporan akhir shift berhasil disubmit!';
+        $msg = $isLateSubmit ? 'Laporan akhir shift berhasil disubmit, namun tercatat TERLAMBAT!' : 'Laporan akhir shift berhasil disubmit!';
         return redirect()->route('dashboard')->with('success', $msg);
     }
 
@@ -214,27 +205,49 @@ class ReportController extends Controller
 
         $report->load(['items.task', 'user']);
 
-        return view('reports.show', compact('report'));
+        $hotelId = $report->user->hotel_id;
+        $reportDate = $report->report_date;
+
+        $prevReport = Report::where('report_date', $reportDate)
+            ->whereHas('user', function($q) use ($hotelId) {
+                $q->where('hotel_id', $hotelId);
+            })
+            ->where('id', '<', $report->id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextReport = Report::where('report_date', $reportDate)
+            ->whereHas('user', function($q) use ($hotelId) {
+                $q->where('hotel_id', $hotelId);
+            })
+            ->where('id', '>', $report->id)
+            ->orderBy('id', 'asc')
+            ->first();
+
+        $totalReports = Report::where('report_date', $reportDate)
+            ->whereHas('user', function($q) use ($hotelId) {
+                $q->where('hotel_id', $hotelId);
+            })->count();
+
+        $currentIndex = Report::where('report_date', $reportDate)
+            ->whereHas('user', function($q) use ($hotelId) {
+                $q->where('hotel_id', $hotelId);
+            })->where('id', '<=', $report->id)->count();
+
+        return view('reports.show', compact('report', 'prevReport', 'nextReport', 'totalReports', 'currentIndex'));
     }
 
     public function destroy(Report $report)
     {
-        if ($report->user_id !== Auth::id()) {
+        if ($report->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if ($report->status !== 'planned') {
-            return redirect()->back()->with('error', 'Laporan yang sudah disubmit tidak dapat dihapus.');
-        }
-
-        foreach ($report->items as $item) {
-            if ($item->before_image) Storage::disk('public')->delete($item->before_image);
-            if ($item->after_image) Storage::disk('public')->delete($item->after_image);
-        }
-
-        $report->items()->delete();
         $report->delete();
 
+        if (Auth::user()->role === 'admin') {
+            return redirect()->route('admin.dashboard')->with('success', 'Laporan Todo List berhasil dihapus.');
+        }
         return redirect()->route('dashboard')->with('success', 'Laporan Todo List berhasil dihapus.');
     }
 }

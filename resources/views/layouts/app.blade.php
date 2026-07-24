@@ -16,6 +16,12 @@
     </head>
     <body class="font-sans antialiased bg-sky-50/40">
         <div class="min-h-screen">
+
+            <!-- Tampilkan navbar bawaan HANYA jika yang login BUKAN admin -->
+            @if(Auth::check() && Auth::user()->role !== 'admin')
+                @include('layouts.navigation')
+            @endif
+
             <!-- Page Content -->
             <main>
                 {{ $slot }}
