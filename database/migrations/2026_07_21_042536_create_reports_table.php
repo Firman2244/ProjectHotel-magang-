@@ -16,6 +16,9 @@ return new class extends Migration
             $table->date('report_date');
             $table->string('status')->default('planned');
             $table->boolean('is_late')->default(false);
+            $table->boolean('is_late_submit')->default(false); // kalau ada tambahan ini dari file lu sebelumnya
+            $table->text('notes')->nullable();
+            $table->integer('total_score')->default(0); // Tambahan untuk poin performa
             $table->timestamps();
         });
     }

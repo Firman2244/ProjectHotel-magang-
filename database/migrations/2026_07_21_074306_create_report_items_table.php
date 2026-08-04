@@ -17,7 +17,8 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->string('before_image')->nullable();
             $table->string('after_image')->nullable();
-            $table->enum('status', ['planned', 'completed', 'void'])->default('planned');
+            $table->enum('status', ['planned', 'completed', 'pending', 'void'])->default('planned'); // Ditambah 'pending' buat kendala tugas
+            $table->text('obstacle_note')->nullable(); // Tambahan buat catatan kendala kalau pending
             $table->timestamps();
         });
     }

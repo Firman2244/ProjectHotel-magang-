@@ -9,6 +9,9 @@ use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ReportSummaryController;
+use App\Http\Controllers\Admin\StorageController;
+use App\Http\Controllers\NoteController;
+use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -22,11 +25,15 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('/reports/history', [ReportController::class, 'history'])->name('reports.history');
     Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
     Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
     Route::put('/reports/{report}/final', [ReportController::class, 'updateFinal'])->name('reports.updateFinal');
     Route::delete('/reports/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
+    Route::delete('/report-items/{item}', [ReportController::class, 'destroyItem'])->name('reports.items.destroy');
+
+    Route::post('/notes', [NoteController::class, 'store'])->name('notes.store');
 
     Route::middleware(['role:admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
@@ -62,6 +69,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/shifts/update', [ShiftController::class, 'updateShift'])->name('admin.shifts.update');
 
         Route::get('/admin/reports/summary', [ReportSummaryController::class, 'index'])->name('admin.reports.summary');
+        Route::get('/admin/reports/export', [ReportSummaryController::class, 'export'])->name('admin.reports.export');
+
+        Route::get('/admin/storage', [StorageController::class, 'index'])->name('admin.storage.index');
+        Route::post('/admin/storage/settings', [StorageController::class, 'updateSettings'])->name('admin.storage.settings');
+        Route::delete('/admin/storage/clear', [StorageController::class, 'clearManual'])->name('admin.storage.clear');
+
+        Route::get('/admin/notes', [NoteController::class, 'indexAdmin'])->name('admin.notes.index');
+        Route::patch('/admin/notes/{note}/read', [NoteController::class, 'markAsRead'])->name('admin.notes.read');
+        Route::delete('/admin/notes/{note}', [NoteController::class, 'destroyAdmin'])->name('admin.notes.destroy');
+
+        Route::get('/admin/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity-logs');
     });
 });
 

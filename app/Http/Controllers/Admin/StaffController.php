@@ -13,13 +13,10 @@ class StaffController extends Controller
 {
     public function index(Request $request)
     {
-        // Tangkap parameter hotel dari sidebar (default: 'wahyu')
         $hotelSlug = $request->query('hotel', 'wahyu');
 
-        // Cari data hotel berdasarkan slug/nama untuk mendapatkan ID-nya
         $currentHotel = Hotel::where('name', 'LIKE', '%' . $hotelSlug . '%')->first();
 
-        // Query staf: filter berdasarkan hotel_id jika hotel ditemukan
         $query = User::where('role', '!=', 'admin')->with('branch');
 
         if ($currentHotel) {
@@ -46,7 +43,6 @@ class StaffController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'hotel_id' => ['required', 'exists:hotels,id'],
             'department' => ['required', 'string'],
-            'shift_id' => ['required', 'in:1,2,3'],
         ]);
 
         User::create([
@@ -55,7 +51,7 @@ class StaffController extends Controller
             'password' => Hash::make($request->password),
             'hotel_id' => $request->hotel_id,
             'department' => $request->department,
-            'shift_id' => $request->shift_id,
+            'shift_id' => null,
             'role' => 'staff',
         ]);
 
@@ -75,7 +71,6 @@ class StaffController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$staff->id],
             'hotel_id' => ['required', 'exists:hotels,id'],
             'department' => ['required', 'string'],
-            'shift_id' => ['required', 'in:1,2,3'],
         ]);
 
         $data = [
@@ -83,7 +78,6 @@ class StaffController extends Controller
             'email' => $request->email,
             'hotel_id' => $request->hotel_id,
             'department' => $request->department,
-            'shift_id' => $request->shift_id,
         ];
 
         if ($request->filled('password')) {

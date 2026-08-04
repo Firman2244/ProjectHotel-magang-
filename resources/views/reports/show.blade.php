@@ -55,6 +55,12 @@
                 </div>
             </div>
 
+            @if(session('success'))
+                <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-5 py-4 rounded-2xl relative shadow-sm font-bold" role="alert">
+                    {{ session('success') }}
+                </div>
+            @endif
+
             @if(session('error'))
                 <div class="bg-rose-50 border border-rose-200 text-rose-700 px-5 py-4 rounded-2xl relative shadow-sm font-bold" role="alert">
                     {{ session('error') }}
@@ -75,7 +81,7 @@
                             Status: {{ $report->status }}
                         </span>
 
-                        @if($report->status == 'planned' && Auth::user()->role !== 'admin')
+                        @if(Auth::user()->role === 'staff' && Auth::id() == $report->user_id && $report->status === 'planned')
                             <form action="{{ route('reports.destroy', $report->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus laporan ini? Seluruh data yang belum disubmit akan hilang secara permanen.');">
                                 @csrf
                                 @method('DELETE')
@@ -87,27 +93,50 @@
                     </div>
                 </div>
 
-                @if($report->status == 'planned')
+                @if(Auth::user()->role === 'staff' && Auth::id() == $report->user_id && $report->status === 'planned')
                     <form id="final-report-form" action="{{ route('reports.updateFinal', $report->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
 
                         <div id="master-task-container" class="space-y-6">
                             @foreach($report->items as $index => $item)
-                                <div class="border border-sky-200 p-6 rounded-2xl bg-sky-50/40 relative shadow-sm hover:shadow transition">
-                                    <div class="mb-4">
+                                <div class="border {{ $item->is_additional ? 'border-amber-300 bg-amber-50/40' : 'border-sky-200 bg-sky-50/40' }} p-6 rounded-2xl relative shadow-sm hover:shadow transition additional-item-block">
+
+                                    @if($item->is_additional)
+                                        <a href="{{ route('reports.items.destroy', $item->id) }}" onclick="return confirm('Yakin ingin menghapus tugas tambahan ini?');" class="absolute top-4 right-4 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 font-bold py-1.5 px-3 rounded-lg text-xs z-10 transition">Hapus</a>
+                                    @endif
+
+                                    <div class="mb-4 {{ $item->is_additional ? 'pr-20' : '' }}">
                                         <span class="font-black text-lg text-slate-800 flex items-center gap-2">
-                                            <span class="text-sky-600">{{ $index + 1 }}.</span> {{ $item->is_additional ? ($item->task_name ?? 'Tugas Tambahan') : ($item->task->name ?? 'Tugas') }}
+                                            <span class="{{ $item->is_additional ? 'text-amber-600' : 'text-sky-600' }}">{{ $index + 1 }}.</span>
+                                            {{ $item->is_additional ? ($item->task_name ?? str_replace('Tugas Tambahan: ', '', explode(' - ', $item->notes)[0])) : ($item->task->name ?? 'Tugas') }}
+                                            @if($item->is_additional)
+                                                <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded uppercase ml-2">Extra</span>
+                                            @endif
                                         </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block text-xs font-black text-slate-500 uppercase mb-1">Status Pengerjaan</label>
+                                            <select name="items[{{ $item->id }}][status]" class="w-full rounded-lg border-slate-300 text-sm font-semibold status-select" data-id="{{ $item->id }}">
+                                                <option value="completed" {{ $item->status == 'completed' ? 'selected' : '' }}>✅ Selesai</option>
+                                                <option value="pending" {{ $item->status == 'pending' ? 'selected' : '' }}>⏳ Kendala / Pending</option>
+                                            </select>
+                                        </div>
+                                        <div class="obstacle-div {{ $item->status == 'pending' ? '' : 'hidden' }}" id="obstacle-{{ $item->id }}">
+                                            <label class="block text-xs font-black text-rose-500 uppercase mb-1">Alasan Kendala</label>
+                                            <input type="text" name="items[{{ $item->id }}][obstacle_note]" value="{{ $item->obstacle_note }}" class="w-full rounded-lg border-rose-300 bg-rose-50 text-sm placeholder-rose-300" placeholder="Jelaskan alasan pending...">
+                                        </div>
                                     </div>
 
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <p class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Foto Before</p>
-                                            <label class="relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-sky-200 rounded-2xl cursor-pointer bg-white hover:bg-sky-50/50 overflow-hidden group transition">
+                                            <label class="relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed {{ $item->is_additional ? 'border-amber-200 hover:bg-amber-50/50' : 'border-sky-200 hover:bg-sky-50/50' }} rounded-2xl cursor-pointer bg-white overflow-hidden group transition">
                                                 <div class="upload-placeholder flex-col items-center justify-center pt-5 pb-6 {{ $item->before_image ? 'hidden' : 'flex' }}">
-                                                    <span class="text-4xl text-sky-400 font-bold group-hover:text-sky-600">+</span>
-                                                    <p class="text-xs text-slate-500 font-bold mt-2 group-hover:text-sky-600">Tap Upload Foto</p>
+                                                    <span class="text-4xl {{ $item->is_additional ? 'text-amber-400 group-hover:text-amber-600' : 'text-sky-400 group-hover:text-sky-600' }} font-bold">+</span>
+                                                    <p class="text-xs text-slate-500 font-bold mt-2">Tap Upload Foto</p>
                                                 </div>
                                                 <img class="preview-img absolute inset-0 w-full h-full object-contain bg-slate-900 {{ $item->before_image ? '' : 'hidden' }}" src="{{ $item->before_image ? asset('storage/' . $item->before_image) : '' }}" alt="Preview">
                                                 <div class="preview-overlay absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow {{ $item->before_image ? '' : 'hidden' }}">BEFORE</div>
@@ -117,10 +146,10 @@
 
                                         <div>
                                             <p class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Foto After</p>
-                                            <label class="relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-sky-200 rounded-2xl cursor-pointer bg-white hover:bg-sky-50/50 overflow-hidden group transition">
+                                            <label class="relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed {{ $item->is_additional ? 'border-amber-200 hover:bg-amber-50/50' : 'border-sky-200 hover:bg-sky-50/50' }} rounded-2xl cursor-pointer bg-white overflow-hidden group transition">
                                                 <div class="upload-placeholder flex-col items-center justify-center pt-5 pb-6 {{ $item->after_image ? 'hidden' : 'flex' }}">
-                                                    <span class="text-4xl text-sky-400 font-bold group-hover:text-sky-600">+</span>
-                                                    <p class="text-xs text-slate-500 font-bold mt-2 group-hover:text-sky-600">Tap Upload Foto</p>
+                                                    <span class="text-4xl {{ $item->is_additional ? 'text-amber-400 group-hover:text-amber-600' : 'text-sky-400 group-hover:text-sky-600' }} font-bold">+</span>
+                                                    <p class="text-xs text-slate-500 font-bold mt-2">Tap Upload Foto</p>
                                                 </div>
                                                 <img class="preview-img absolute inset-0 w-full h-full object-contain bg-slate-900 {{ $item->after_image ? '' : 'hidden' }}" src="{{ $item->after_image ? asset('storage/' . $item->after_image) : '' }}" alt="Preview">
                                                 <div class="preview-overlay absolute top-3 right-3 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow {{ $item->after_image ? '' : 'hidden' }}">AFTER</div>
@@ -131,7 +160,7 @@
 
                                     <div class="mt-6">
                                         <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Catatan Tugas</label>
-                                        <input type="text" name="items[{{ $item->id }}][notes]" value="{{ old('items.'.$item->id.'.notes', $item->notes) }}" class="block w-full border-sky-200 bg-white text-slate-800 font-medium focus:border-sky-500 focus:ring-sky-500 rounded-xl shadow-sm py-3 px-4">
+                                        <input type="text" name="items[{{ $item->id }}][notes]" value="{{ old('items.'.$item->id.'.notes', $item->notes) }}" class="block w-full {{ $item->is_additional ? 'border-amber-200 focus:border-amber-500 focus:ring-amber-500' : 'border-sky-200 focus:border-sky-500 focus:ring-sky-500' }} bg-white text-slate-800 font-medium rounded-xl shadow-sm py-3 px-4">
                                     </div>
                                 </div>
                             @endforeach
@@ -147,9 +176,14 @@
                             <a href="{{ route('dashboard') }}" class="w-full sm:w-auto text-center bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 px-6 rounded-xl transition shadow-sm">
                                 Kembali ke Dashboard
                             </a>
-                            <button type="button" id="btn-submit-final" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-black py-4 px-8 rounded-xl transition shadow-lg shadow-sky-600/20 text-base">
-                                Kirim Laporan Akhir Shift
-                            </button>
+                            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                <button type="submit" name="save_action" value="draft" class="w-full sm:w-auto bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-4 px-6 rounded-xl border border-amber-200 shadow-sm transition text-base text-center">
+                                    Simpan Draft
+                                </button>
+                                <button type="button" id="btn-submit-final" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-black py-4 px-8 rounded-xl transition shadow-lg shadow-sky-600/20 text-base text-center">
+                                    Kirim Laporan Akhir Shift
+                                </button>
+                            </div>
                         </div>
                     </form>
                 @else
@@ -196,7 +230,7 @@
         </div>
     </div>
 
-    @if($report->status == 'planned')
+    @if(Auth::user()->role === 'staff' && Auth::id() == $report->user_id && $report->status === 'planned')
         <div id="custom-confirm-modal" class="fixed inset-0 z-50 items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden">
             <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl border border-sky-100 text-center transform transition-all">
                 <div class="w-16 h-16 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
@@ -245,6 +279,18 @@
                             reader.readAsDataURL(file);
                         }
                     }
+                });
+
+                document.querySelectorAll('.status-select').forEach(select => {
+                    select.addEventListener('change', function() {
+                        const id = this.getAttribute('data-id');
+                        const obstacleDiv = document.getElementById('obstacle-' + id);
+                        if(this.value === 'pending') {
+                            obstacleDiv.classList.remove('hidden');
+                        } else {
+                            obstacleDiv.classList.add('hidden');
+                        }
+                    });
                 });
 
                 if (btnAddAdditional) {
@@ -318,6 +364,11 @@
 
                 if (modalBtnConfirm) {
                     modalBtnConfirm.addEventListener('click', function() {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'save_action';
+                        input.value = 'final';
+                        finalReportForm.appendChild(input);
                         finalReportForm.submit();
                     });
                 }
@@ -327,7 +378,7 @@
         <div id="lightboxModal" class="fixed inset-0 bg-slate-900/90 z-[100] hidden items-center justify-center p-4 cursor-zoom-out transition-opacity" onclick="closeLightbox()">
             <img id="lightboxImage" src="" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
             <button class="absolute top-6 right-6 text-white bg-slate-800/50 hover:bg-rose-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-xl backdrop-blur-sm transition">
-                ×
+                &times;
             </button>
         </div>
 

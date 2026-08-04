@@ -48,27 +48,15 @@
                             @error('hotel_id') <span class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">Departemen</label>
-                                <select name="department" required class="w-full border-sky-200 bg-white text-slate-800 font-semibold rounded-xl shadow-sm py-2.5 px-3 text-sm focus:border-sky-500 focus:ring-sky-500 cursor-pointer">
-                                    <option value="">-- Pilih Departemen --</option>
-                                    @foreach(\App\Models\Task::select('department')->distinct()->pluck('department') as $dept)
-                                        <option value="{{ $dept }}" {{ old('department') == $dept ? 'selected' : '' }}>{{ $dept }}</option>
-                                    @endforeach
-                                </select>
-                                @error('department') <span class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">Shift Kerja</label>
-                                <select name="shift_id" required class="w-full border-sky-200 bg-white text-slate-800 font-semibold rounded-xl shadow-sm py-2.5 px-3 text-sm focus:border-sky-500 focus:ring-sky-500 cursor-pointer">
-                                    <option value="">-- Pilih Shift --</option>
-                                    <option value="1" {{ old('shift_id') == '1' ? 'selected' : '' }}>Shift 1 (Pagi)</option>
-                                    <option value="2" {{ old('shift_id') == '2' ? 'selected' : '' }}>Shift 2 (Siang)</option>
-                                    <option value="3" {{ old('shift_id') == '3' ? 'selected' : '' }}>Shift 3 (Malam)</option>
-                                </select>
-                                @error('shift_id') <span class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</span> @enderror
-                            </div>
+                        <div>
+                            <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">Departemen</label>
+                            <select name="department" required class="w-full border-sky-200 bg-white text-slate-800 font-semibold rounded-xl shadow-sm py-2.5 px-3 text-sm focus:border-sky-500 focus:ring-sky-500 cursor-pointer">
+                                <option value="">-- Pilih Departemen --</option>
+                                @foreach(\App\Models\Task::select('department')->distinct()->pluck('department') as $dept)
+                                    <option value="{{ $dept }}" {{ old('department') == $dept ? 'selected' : '' }}>{{ $dept }}</option>
+                                @endforeach
+                            </select>
+                            @error('department') <span class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="pt-4 flex gap-3">
