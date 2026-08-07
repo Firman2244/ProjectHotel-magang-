@@ -21,15 +21,16 @@
                 </div>
             </div>
 
-            <div class="hidden sm:flex sm:items-center sm:ms-6 gap-2">
+            <!-- DESKTOP MENU (TAMPIL DI LAPTOP) -->
+            <div class="hidden sm:flex sm:items-center sm:ms-6 gap-5">
 
-                <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none rounded-xl text-sm p-2.5 transition">
-                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path>
-                    </svg>
-                    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                    </svg>
+                <!-- TOMBOL DARK MODE KAPSUL (DESKTOP) -->
+                <button type="button" class="theme-toggle relative inline-flex h-8 w-16 items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors duration-300 focus:outline-none shadow-inner border border-slate-300 dark:border-slate-600">
+                    <span class="sr-only">Toggle Dark Mode</span>
+                    <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
+                        <svg class="w-4 h-4 text-amber-500 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 4.22a1 1 0 011.415 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm-9.855 0a1 1 0 010 1.414l-.849.849a1 1 0 01-1.414-1.414l.849-.849a1 1 0 011.414 0zM10 6a4 4 0 100 8 4 4 0 000-8zm-4 4a1 1 0 11-2 0 1 1 0 012 0zm11-1a1 1 0 110 2h-1a1 1 0 110-2h1zM5.636 15.636a1 1 0 011.414 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm9.855 0a1 1 0 010 1.414l-.849.849a1 1 0 01-1.414-1.414l.849-.849a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"></path></svg>
+                        <svg class="w-4 h-4 text-slate-700 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    </span>
                 </button>
 
                 <x-dropdown align="right" width="48">
@@ -62,7 +63,18 @@
                 </x-dropdown>
             </div>
 
-            <div class="-me-2 flex items-center sm:hidden">
+            <!-- MOBILE MENU (TAMPIL DI HP) -->
+            <div class="-me-2 flex items-center sm:hidden gap-3">
+
+                <!-- TOMBOL DARK MODE KAPSUL (MOBILE) -->
+                <button type="button" class="theme-toggle relative inline-flex h-8 w-16 items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors duration-300 focus:outline-none shadow-inner border border-slate-300 dark:border-slate-600">
+                    <span class="sr-only">Toggle Dark Mode</span>
+                    <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
+                        <svg class="w-4 h-4 text-amber-500 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 4.22a1 1 0 011.415 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm-9.855 0a1 1 0 010 1.414l-.849.849a1 1 0 01-1.414-1.414l.849-.849a1 1 0 011.414 0zM10 6a4 4 0 100 8 4 4 0 000-8zm-4 4a1 1 0 11-2 0 1 1 0 012 0zm11-1a1 1 0 110 2h-1a1 1 0 110-2h1zM5.636 15.636a1 1 0 011.414 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm9.855 0a1 1 0 010 1.414l-.849.849a1 1 0 01-1.414-1.414l.849-.849a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"></path></svg>
+                        <svg class="w-4 h-4 text-slate-700 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    </span>
+                </button>
+
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-slate-400 hover:text-gray-500 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-slate-700 focus:text-gray-500 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -73,6 +85,7 @@
         </div>
     </div>
 
+    <!-- Dropdown Mobile Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden dark:bg-slate-800 border-t dark:border-slate-700">
         <div class="pt-2 pb-3 space-y-1">
             @if(Auth::user()->role === 'admin')

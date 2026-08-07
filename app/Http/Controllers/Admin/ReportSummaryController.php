@@ -19,33 +19,28 @@ class ReportSummaryController extends Controller
         $startDate = $request->query('start_date', Carbon::now()->timezone('Asia/Jakarta')->subDays(6)->format('Y-m-d'));
         $endDate = $request->query('end_date', Carbon::now()->timezone('Asia/Jakarta')->format('Y-m-d'));
         $department = $request->query('department');
+        $shiftId = $request->query('shift_id');
+        $staffId = $request->query('staff_id');
 
         $hotelSlug = $request->query('hotel', 'wahyu');
         $currentHotel = Hotel::where('name', 'LIKE', '%' . $hotelSlug . '%')->first();
-
         $hotelId = $request->query('hotel_id', $currentHotel ? $currentHotel->id : null);
 
         $hotels = Hotel::all();
 
+        $staffQuery = User::where('role', 'staff');
+        if ($hotelId) {
+            $staffQuery->where('hotel_id', $hotelId);
+        }
+        $staffList = $staffQuery->orderBy('name')->get(['id', 'name']);
+
         $defaultDepartments = [
-            'Front Office',
-            'Housekeeping',
-            'Engineering',
-            'Food & Beverage',
-            'Security',
-            'Human Resources',
-            'Accounting',
-            'Sales & Marketing'
+            'Front Office', 'Housekeeping', 'Engineering', 'Food & Beverage',
+            'Security', 'Human Resources', 'Accounting', 'Sales & Marketing'
         ];
 
-        $dbDepartments = User::whereNotNull('department')
-            ->pluck('department')
-            ->toArray();
-
-        $availableDepartments = collect(array_merge($defaultDepartments, $dbDepartments))
-            ->unique()
-            ->sort()
-            ->values();
+        $dbDepartments = User::whereNotNull('department')->pluck('department')->toArray();
+        $availableDepartments = collect(array_merge($defaultDepartments, $dbDepartments))->unique()->sort()->values();
 
         $baseQuery = Report::whereBetween('report_date', [$startDate, $endDate]);
 
@@ -59,6 +54,14 @@ class ReportSummaryController extends Controller
             $baseQuery->whereHas('user', function ($q) use ($department) {
                 $q->where('department', $department);
             });
+        }
+
+        if ($shiftId) {
+            $baseQuery->where('shift_id', $shiftId);
+        }
+
+        if ($staffId) {
+            $baseQuery->where('user_id', $staffId);
         }
 
         $totalKaryawanMasuk = (clone $baseQuery)->count();
@@ -104,7 +107,7 @@ class ReportSummaryController extends Controller
             ->withQueryString();
 
         return view('admin.reports.summary', compact(
-            'reports', 'hotels', 'startDate', 'endDate', 'hotelId', 'department', 'hotelSlug', 'currentHotel',
+            'reports', 'hotels', 'startDate', 'endDate', 'hotelId', 'department', 'shiftId', 'staffId', 'staffList', 'hotelSlug', 'currentHotel',
             'totalKaryawanMasuk', 'laporanTepatWaktu', 'laporanTerlambat', 'totalTugasTambahan',
             'chartDates', 'chartTepat', 'chartTelat', 'availableDepartments'
         ));

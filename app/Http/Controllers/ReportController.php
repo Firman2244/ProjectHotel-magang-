@@ -94,21 +94,6 @@ class ReportController extends Controller
         }
     }
 
-    /**
-     * Upload gambar (before/after) dan proses via job.
-     *
-     * PENTING: Method ini TIDAK mengembalikan path apapun untuk disimpan manual
-     * di controller. Kolom `before_image` / `after_image` pada ReportItem akan
-     * di-update SENDIRI oleh job ProcessReportImage setelah gambar selesai
-     * di-resize & dipindah ke lokasi final.
-     *
-     * Sebelumnya method ini me-return $tempPath, lalu path itu dipakai lagi
-     * untuk $item->update(['before_image' => $tempPath, ...]) di updateFinal().
-     * Ini menyebabkan bug: begitu job selesai (terutama saat dispatchSync di
-     * local) dan sudah benar mengisi path final, controller langsung
-     * menimpanya lagi dengan path tmp yang sudah dihapus oleh job -> foto
-     * jadi broken image walau file aslinya ada di storage.
-     */
     private function handleImageUpload(mixed $file, int $itemId, string $imageType, ?int $hotelId): void
     {
         if (!$file) {
@@ -124,11 +109,6 @@ class ReportController extends Controller
         }
     }
 
-    /**
-     * Hapus semua file before_image/after_image milik sebuah report dari
-     * storage disk 'public'. Dipanggil sebelum $report->delete(), karena
-     * cascade DB tidak menghapus file fisik, cuma baris di tabel.
-     */
     private function deleteReportImages(Report $report): void
     {
         $items = ReportItem::where('report_id', $report->id)
@@ -153,9 +133,6 @@ class ReportController extends Controller
         }
 
         $isDraft = $request->save_action === 'draft';
-        $completedCount = 0;
-        $totalItems = 0;
-        $score = 0;
         $hotelId = $report->hotel_id;
 
         DB::beginTransaction();
@@ -168,42 +145,26 @@ class ReportController extends Controller
                     ->get()
                     ->keyBy('id');
 
-                $totalItems = count($request->items);
-
                 foreach ($request->items as $itemId => $itemData) {
                     $item = $existingItems->get($itemId);
                     if ($item) {
                         $status = $itemData['status'] ?? 'completed';
                         $obstacleNote = $status === 'pending' ? ($itemData['obstacle_note'] ?? null) : null;
 
-                        // Update data non-gambar dulu. Kolom before_image/after_image
-                        // SENGAJA tidak disentuh di sini supaya tidak menimpa hasil
-                        // update dari job ProcessReportImage (lihat handleImageUpload).
                         $item->update([
                             'status'        => $status,
                             'obstacle_note' => $obstacleNote,
                             'notes'         => $itemData['notes'] ?? $item->notes,
                         ]);
 
-                        // Upload gambar baru HANYA jika ada file yang dikirim.
-                        // Job yang akan mengisi kolom before_image/after_image
-                        // dengan path final setelah selesai diproses.
                         if (isset($itemData['before_image'])) {
                             $this->handleImageUpload($itemData['before_image'], $item->id, 'before_image', $hotelId);
                         }
                         if (isset($itemData['after_image'])) {
                             $this->handleImageUpload($itemData['after_image'], $item->id, 'after_image', $hotelId);
                         }
-
-                        if ($status === 'completed') {
-                            $completedCount++;
-                        }
                     }
                 }
-            }
-
-            if ($totalItems > 0) {
-                $score = round(($completedCount / $totalItems) * 100);
             }
 
             if ($request->has('new_items')) {
@@ -219,16 +180,12 @@ class ReportController extends Controller
                             'is_additional' => 1,
                         ]);
 
-                        // Sama seperti di atas: job yang akan mengisi
-                        // before_image/after_image dengan path final.
                         if (isset($newItem['before_image'])) {
                             $this->handleImageUpload($newItem['before_image'], $newItemDb->id, 'before_image', $hotelId);
                         }
                         if (isset($newItem['after_image'])) {
                             $this->handleImageUpload($newItem['after_image'], $newItemDb->id, 'after_image', $hotelId);
                         }
-
-                        $score += 15;
                     }
                 }
             }
@@ -257,25 +214,42 @@ class ReportController extends Controller
                 $isLateSubmit = $now->greaterThan($submitDeadline);
             }
 
+            $standardTasks = $report->items()->where('is_additional', 0)->get();
+            $additionalTasks = $report->items()->where('is_additional', 1)->get();
+
+            $totalStandard = $standardTasks->count();
+            $totalPending = $standardTasks->where('status', 'pending')->count();
+            $totalCompleted = $standardTasks->where('status', 'completed')->count();
+
+            $validDenominator = $totalStandard - $totalPending;
+
+            $baseScore = 0;
+            if ($validDenominator > 0) {
+                $baseScore = ($totalCompleted / $validDenominator) * 100;
+            } elseif ($validDenominator === 0 && $totalStandard > 0) {
+                $baseScore = 100;
+            }
+
+            $bonusScore = $additionalTasks->where('status', 'completed')->count() * 10;
+
+            $latePenalty = 0;
             if ($report->is_late) {
-                $score -= 20;
+                $latePenalty += 15;
             }
-
             if ($isLateSubmit) {
-                $score -= 20;
+                $latePenalty += 15;
             }
 
-            if ($score < 0) {
-                $score = 0;
-            }
+            $finalScore = (int) round($baseScore + $bonusScore - $latePenalty);
+            $finalScore = max(0, $finalScore);
 
             $report->update([
                 'status'         => 'completed',
-                'total_score'    => $score,
+                'total_score'    => $finalScore,
                 'is_late_submit' => $isLateSubmit,
             ]);
 
-            ActivityLog::record(Auth::id(), 'SUBMIT_REPORT', "Menyelesaikan laporan shift ID: {$report->id} dengan skor $score");
+            ActivityLog::record(Auth::id(), 'SUBMIT_REPORT', "Menyelesaikan laporan shift ID: {$report->id} dengan skor $finalScore");
 
             DB::commit();
 

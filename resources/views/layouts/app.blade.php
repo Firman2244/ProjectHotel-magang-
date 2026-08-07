@@ -11,38 +11,20 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <style>
-            ::-webkit-scrollbar {
-                width: 6px;
-                height: 6px;
-            }
-
-            ::-webkit-scrollbar-track {
-                background: transparent;
-            }
-
-            ::-webkit-scrollbar-thumb {
-                background: #cbd5e1;
-                border-radius: 10px;
-            }
-
-            ::-webkit-scrollbar-thumb:hover {
-                background: #94a3b8;
-            }
-
-            .dark ::-webkit-scrollbar-thumb {
-                background: #334155;
-            }
-
-            .dark ::-webkit-scrollbar-thumb:hover {
-                background: #475569;
-            }
+            ::-webkit-scrollbar { width: 6px; height: 6px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+            ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+            .dark ::-webkit-scrollbar-thumb { background: #334155; }
+            .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
         </style>
 
         <script>
-            if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            // Mencegah layar kedip putih (Flash of Unstyled Content) saat di-refresh
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
             } else {
-                document.documentElement.classList.remove('dark')
+                document.documentElement.classList.remove('dark');
             }
         </script>
 
@@ -60,41 +42,39 @@
             </main>
         </div>
 
+        <!-- Script Super Ringan untuk Switch Toggle -->
         <script>
-            var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-            var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-            var themeToggleBtn = document.getElementById('theme-toggle');
+            document.addEventListener('DOMContentLoaded', () => {
+                const toggleBtns = document.querySelectorAll('.theme-toggle');
+                const toggleBalls = document.querySelectorAll('.theme-toggle-ball');
 
-            if (themeToggleDarkIcon && themeToggleLightIcon && themeToggleBtn) {
-                if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    themeToggleLightIcon.classList.remove('hidden');
-                } else {
-                    themeToggleDarkIcon.classList.remove('hidden');
-                }
-
-                themeToggleBtn.addEventListener('click', function() {
-                    themeToggleDarkIcon.classList.toggle('hidden');
-                    themeToggleLightIcon.classList.toggle('hidden');
-
-                    if (localStorage.getItem('color-theme')) {
-                        if (localStorage.getItem('color-theme') === 'light') {
-                            document.documentElement.classList.add('dark');
-                            localStorage.setItem('color-theme', 'dark');
+                // Fungsi sinkronisasi bola UI
+                const syncToggleUI = (isDark) => {
+                    toggleBalls.forEach(ball => {
+                        if (isDark) {
+                            ball.classList.replace('translate-x-1', 'translate-x-9');
                         } else {
-                            document.documentElement.classList.remove('dark');
-                            localStorage.setItem('color-theme', 'light');
+                            ball.classList.replace('translate-x-9', 'translate-x-1');
                         }
-                    } else {
-                        if (document.documentElement.classList.contains('dark')) {
-                            document.documentElement.classList.remove('dark');
-                            localStorage.setItem('color-theme', 'light');
-                        } else {
-                            document.documentElement.classList.add('dark');
-                            localStorage.setItem('color-theme', 'dark');
-                        }
-                    }
+                    });
+                };
+
+                // Pengecekan saat halaman pertama dimuat
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                syncToggleUI(isDarkMode);
+
+                // Event listener untuk tombol switch
+                toggleBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const root = document.documentElement;
+                        root.classList.toggle('dark');
+
+                        const currentlyDark = root.classList.contains('dark');
+                        localStorage.theme = currentlyDark ? 'dark' : 'light';
+                        syncToggleUI(currentlyDark);
+                    });
                 });
-            }
+            });
         </script>
     </body>
 </html>

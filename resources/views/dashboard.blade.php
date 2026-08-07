@@ -1,18 +1,16 @@
 <x-app-layout>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+
     <x-slot name="header">
         <h2 class="font-extrabold text-2xl text-slate-800 dark:text-white leading-tight">
             {{ __('Dashboard Karyawan') }}
         </h2>
     </x-slot>
 
-    <div class="py-12 bg-sky-50/60 dark:bg-slate-900 min-h-screen transition-colors duration-300" x-data="{ openReportModal: null, imageModalOpen: false, imageModalSrc: '' }">
+    <div class="py-12 bg-sky-50/60 dark:bg-slate-900 min-h-screen transition-colors duration-300" x-data="{ openReportModal: null, imageModalOpen: false, imageModalSrc: '', showSuccessPopup: {{ session('success') ? 'true' : 'false' }}, showErrorPopup: {{ $errors->any() ? 'true' : 'false' }} }">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-
-            @if(session('success'))
-                <div class="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 px-5 py-4 rounded-2xl relative shadow-sm" role="alert">
-                    <span class="block sm:inline font-bold">{{ session('success') }}</span>
-                </div>
-            @endif
 
             <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-8 rounded-2xl shadow-sm border border-sky-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div class="flex items-center gap-5">
@@ -231,17 +229,9 @@
 
         @foreach($reports as $r)
             <div x-cloak x-show="openReportModal === {{ $r->id }}" class="fixed inset-0 z-[80] flex items-center justify-center">
-                <div x-show="openReportModal === {{ $r->id }}" x-transition.opacity class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" @click="openReportModal = null"></div>
+                <div x-show="openReportModal === {{ $r->id }}" x-transition class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" @click="openReportModal = null"></div>
 
-                <div x-show="openReportModal === {{ $r->id }}"
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                     x-transition:leave="transition ease-in duration-200"
-                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     class="relative z-[90] bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
-
+                <div x-show="openReportModal === {{ $r->id }}" x-transition class="relative z-[90] bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
                     <div class="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex justify-between items-start gap-4 flex-shrink-0">
                         <div class="flex items-center gap-4">
                             <div class="w-14 h-14 bg-sky-100 dark:bg-sky-900/30 rounded-xl flex items-center justify-center text-sky-700 dark:text-sky-400 font-bold text-xl overflow-hidden shadow-sm border border-sky-200 dark:border-sky-800">
@@ -319,16 +309,35 @@
         @endforeach
 
         <div x-cloak x-show="imageModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center">
-            <div x-show="imageModalOpen" x-transition.opacity class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm" @click="imageModalOpen = false"></div>
-            <div x-show="imageModalOpen"
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 scale-90"
-                 x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="opacity-100 scale-100"
-                 x-transition:leave-end="opacity-0 scale-90"
-                 class="relative z-[110] max-w-5xl w-full mx-4 flex flex-col items-center">
+            <div x-show="imageModalOpen" x-transition class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm" @click="imageModalOpen = false"></div>
+            <div x-show="imageModalOpen" x-transition class="relative z-[110] max-w-5xl w-full mx-4 flex flex-col items-center">
                 <img @click="imageModalOpen = false" :src="imageModalSrc" class="max-h-[90vh] w-auto max-w-full rounded-2xl shadow-2xl border-4 border-white/10 object-contain cursor-zoom-out" title="Klik untuk menutup">
+            </div>
+        </div>
+
+        <div x-cloak x-show="showSuccessPopup" class="fixed inset-0 z-[100] flex items-center justify-center">
+            <div x-show="showSuccessPopup" x-transition class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showSuccessPopup = false"></div>
+            <div x-show="showSuccessPopup" x-transition class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm p-6 relative z-[110] text-center border border-slate-100 dark:border-slate-700">
+                <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner">✅</div>
+                <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">Berhasil!</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">{{ session('success') }}</p>
+                <button @click="showSuccessPopup = false" class="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition shadow-lg shadow-emerald-600/30">Tutup</button>
+            </div>
+        </div>
+
+        <div x-cloak x-show="showErrorPopup" class="fixed inset-0 z-[100] flex items-center justify-center">
+            <div x-show="showErrorPopup" x-transition class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showErrorPopup = false"></div>
+            <div x-show="showErrorPopup" x-transition class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm p-6 relative z-[110] text-center border border-slate-100 dark:border-slate-700">
+                <div class="w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner">⚠️</div>
+                <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">Gagal Mengirim!</h3>
+                <div class="text-sm text-rose-600 dark:text-rose-400 font-medium mb-6 text-left bg-rose-50 dark:bg-rose-900/20 p-4 rounded-xl border border-rose-100 dark:border-rose-800/50">
+                    <ul class="list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                <button @click="showErrorPopup = false" class="w-full px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl transition shadow-lg shadow-rose-600/30">Perbaiki Form</button>
             </div>
         </div>
 
@@ -343,7 +352,6 @@
 
             const now = new Date();
             const [targetHours, targetMinutes] = deadlineTimeStr.split(':').map(Number);
-
             const targetDate = new Date();
             targetDate.setHours(targetHours, targetMinutes, 0, 0);
 
@@ -355,11 +363,11 @@
                 return;
             }
 
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60 * 60 / 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            const hours = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
 
-            timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            timerEl.textContent = `${hours}:${minutes}:${seconds}`;
         }
 
         setInterval(updateCountdown, 1000);

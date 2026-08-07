@@ -43,68 +43,77 @@ class ReportsExport implements FromCollection, WithHeadings, WithMapping, Should
             });
         }
 
-        return $query->orderBy('report_date', 'desc')->orderBy('created_at', 'desc')->get();
+        $reports = $query->get();
+
+        // Agregasi data per Staf (User)
+        $summary = $reports->groupBy('user_id')->map(function ($userReports) {
+            $firstReport = $userReports->first();
+            $user = $firstReport->user;
+
+            $totalShift = $userReports->count();
+            $tepatWaktu = $userReports->where('is_late', false)->where('is_late_submit', false)->count();
+            $terlambat = $totalShift - $tepatWaktu;
+
+            // UBAH: Dari Rata-rata (avg) menjadi Total Kumulatif (sum)
+            $totalScore = $userReports->sum('total_score');
+
+            $totalSopCompleted = 0;
+            $totalExtra = 0;
+
+            foreach ($userReports as $rep) {
+                $totalSopCompleted += $rep->items->where('is_additional', false)->where('status', 'completed')->count();
+                $totalExtra += $rep->items->where('is_additional', true)->count();
+            }
+
+            return [
+                'hotel_name' => $user->branch ? $user->branch->name : '-',
+                'name' => $user->name,
+                'department' => $user->department,
+                'total_shift' => $totalShift,
+                'tepat_waktu' => $tepatWaktu,
+                'terlambat' => $terlambat,
+                'total_score' => $totalScore,
+                'sop_completed' => $totalSopCompleted,
+                'extra_count' => $totalExtra,
+            ];
+        });
+
+        return collect($summary->values());
     }
 
     public function headings(): array
     {
         return [
-            ['REKAPITULASI LAPORAN HARIAN STAF'],
+            ['RANGKUMAN PERFORMA & SKOR STAF HOTEL'],
             ['Rentang Waktu:', $this->startDate . ' s/d ' . $this->endDate],
             ['Diunduh Pada:', Carbon::now()->timezone('Asia/Jakarta')->format('Y-m-d H:i:s')],
             [],
             [
-                'Tanggal Laporan',
                 'Cabang Hotel',
                 'Nama Staf',
                 'Departemen',
-                'Shift',
-                'Jam Datang',
-                'Jam Selesai',
-                'Status Kepatuhan',
-                'Skor Performa',
-                'Tugas SOP (Selesai)',
-                'Tugas SOP (Pending)',
-                'Tugas Ekstra',
-                'Catatan Shift',
-                'Alasan Kendala'
+                'Total Shift Masuk',
+                'Tepat Waktu',
+                'Terlambat',
+                'Total Skor Performa', // Diubah penamaannya
+                'Total SOP Selesai',
+                'Total Tugas Ekstra'
             ]
         ];
     }
 
-    public function map($report): array
+    public function map($row): array
     {
-        $clockIn = Carbon::parse($report->created_at)->timezone('Asia/Jakarta')->format('H:i');
-        $clockOut = $report->status == 'completed' ? Carbon::parse($report->updated_at)->timezone('Asia/Jakarta')->format('H:i') : '-';
-
-        $statusWaktu = ($report->is_late || $report->is_late_submit) ? 'Terlambat' : 'Tepat Waktu';
-
-        $sopCompleted = $report->items->where('is_additional', false)->where('status', 'completed')->count();
-        $sopPending = $report->items->where('is_additional', false)->where('status', 'pending')->count();
-        $extraCount = $report->items->where('is_additional', true)->count();
-
-        $obstacles = $report->items->where('status', 'pending')
-            ->pluck('obstacle_note')
-            ->filter()
-            ->implode('; ');
-
-        $hotelName = $report->user->branch ? $report->user->branch->name : '-';
-
         return [
-            Carbon::parse($report->report_date)->format('d/m/Y'),
-            $hotelName,
-            $report->user->name,
-            $report->user->department,
-            'Shift ' . $report->shift_id,
-            $clockIn,
-            $clockOut,
-            $statusWaktu,
-            $report->total_score,
-            $sopCompleted,
-            $sopPending,
-            $extraCount,
-            $report->notes ?? '-',
-            $obstacles ?: '-'
+            $row['hotel_name'],
+            $row['name'],
+            $row['department'],
+            $row['total_shift'],
+            $row['tepat_waktu'],
+            $row['terlambat'],
+            $row['total_score'],
+            $row['sop_completed'],
+            $row['extra_count']
         ];
     }
 

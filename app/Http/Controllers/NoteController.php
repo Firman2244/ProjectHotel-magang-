@@ -3,46 +3,35 @@
 namespace App\Http\Controllers;
 
 use App\Models\Note;
-use Illuminate\Http\Request;
+use App\Http\Requests\SubmitNoteRequest;
+use App\Jobs\ProcessNoteImage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Facades\Image;
-use Illuminate\Support\Str;
 
 class NoteController extends Controller
 {
-    public function store(Request $request)
+    public function store(SubmitNoteRequest $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:150',
-            'message' => 'required|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:10240'
-        ]);
-
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $filename = Str::random(40) . '.jpg';
-            $imagePath = 'notes/' . $filename;
-
-            $compressedImage = Image::make($image)
-                ->resize(800, 800, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                })
-                ->encode('jpg', 75);
-
-            Storage::disk('public')->put($imagePath, $compressedImage);
-        }
-
-        Note::create([
-            'user_id' => Auth::id(),
+        // 1. Buat data Note dulu tanpa gambar
+        $note = Note::create([
+            'user_id'  => Auth::id(),
             'hotel_id' => Auth::user()->hotel_id,
-            'title' => $request->title,
-            'message' => $request->message,
-            'image' => $imagePath,
-            'is_read' => false
+            'title'    => $request->title,
+            'message'  => $request->message,
+            'image'    => null,
+            'is_read'  => false
         ]);
+
+        // 2. Jika ada foto, simpan ke temp dan lempar ke Job
+        if ($request->hasFile('image')) {
+            $tempPath = $request->file('image')->store('notes/tmp', 'public');
+
+            if (app()->environment('local')) {
+                ProcessNoteImage::dispatchSync($note->id, $tempPath, Auth::user()->hotel_id);
+            } else {
+                ProcessNoteImage::dispatch($note->id, $tempPath, Auth::user()->hotel_id);
+            }
+        }
 
         return redirect()->back()->with('success', 'Catatan kerusakan berhasil dikirim ke Admin!');
     }

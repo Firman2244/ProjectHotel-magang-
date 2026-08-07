@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ReportSummaryController;
 use App\Http\Controllers\Admin\StorageController;
+use App\Http\Controllers\Admin\StaffScoreController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,8 @@ Route::middleware('auth')->group(function () {
             'update' => 'admin.staff.update',
             'destroy' => 'admin.staff.destroy',
         ]);
+
+        Route::get('/admin/staff-scores', [StaffScoreController::class, 'index'])->name('admin.staff.scores');
 
         Route::resource('admin/tasks', TaskController::class)->names([
             'index' => 'admin.tasks.index',
