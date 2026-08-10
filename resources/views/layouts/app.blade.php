@@ -11,6 +11,7 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <style>
+            /* Custom Scrollbar */
             ::-webkit-scrollbar { width: 6px; height: 6px; }
             ::-webkit-scrollbar-track { background: transparent; }
             ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -42,13 +43,12 @@
             </main>
         </div>
 
-        <!-- Script Super Ringan untuk Switch Toggle -->
+        <!-- Script Toggle Dark Mode -->
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const toggleBtns = document.querySelectorAll('.theme-toggle');
                 const toggleBalls = document.querySelectorAll('.theme-toggle-ball');
 
-                // Fungsi sinkronisasi bola UI
                 const syncToggleUI = (isDark) => {
                     toggleBalls.forEach(ball => {
                         if (isDark) {
@@ -59,11 +59,9 @@
                     });
                 };
 
-                // Pengecekan saat halaman pertama dimuat
                 const isDarkMode = document.documentElement.classList.contains('dark');
                 syncToggleUI(isDarkMode);
 
-                // Event listener untuk tombol switch
                 toggleBtns.forEach(btn => {
                     btn.addEventListener('click', () => {
                         const root = document.documentElement;

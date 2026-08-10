@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Report;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -12,66 +13,65 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        if ($user->role === 'admin') return redirect()->route('admin.dashboard');
 
-        if ($user->role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        }
-
-        $shiftId = $user->shift_id;
         $today = Carbon::today('Asia/Jakarta')->toDateString();
+        $shiftConfig = match ($user->shift_id) {
+            1 => ['name' => 'Shift 1 (Pagi)', 'todo' => '07:00 - 07:30', 'submit' => '15:30'],
+            2 => ['name' => 'Shift 2 (Siang)', 'todo' => '13:00 - 13:30', 'submit' => '21:30'],
+            3 => ['name' => 'Shift 3 (Malam)', 'todo' => '22:00 - 22:30', 'submit' => '06:30'],
+            default => ['name' => 'Shift Tidak Valid', 'todo' => '--:--', 'submit' => '--:--'],
+        };
 
-        if ($shiftId == 1) {
-            $shiftName = 'Shift 1 (Pagi)';
-            $todoDeadline = '07:00 - 07:30';
-            $submitDeadlineTime = '15:30';
-        } elseif ($shiftId == 2) {
-            $shiftName = 'Shift 2 (Siang)';
-            $todoDeadline = '13:00 - 13:30';
-            $submitDeadlineTime = '21:30';
-        } elseif ($shiftId == 3) {
-            $shiftName = 'Shift 3 (Malam)';
-            $todoDeadline = '22:00 - 22:30';
-            $submitDeadlineTime = '06:30';
-        } else {
-            $shiftName = 'Shift Tidak Valid';
-            $todoDeadline = '--:--';
-            $submitDeadlineTime = '--:--';
-        }
+        $baseReportQuery = Report::where('user_id', $user->id)->where('report_date', $today);
+        $todayReport = (clone $baseReportQuery)->first();
 
-        $todayReportCompleted = Report::where('user_id', $user->id)
-            ->where('report_date', $today)
-            ->where('status', 'completed')
-            ->exists();
+        $todayReportCompleted = $todayReport && $todayReport->status === 'completed';
+        $todayReportPlanned = $todayReport && $todayReport->status === 'planned' ? $todayReport : null;
 
-        $todayReportPlanned = Report::where('user_id', $user->id)
-            ->where('report_date', $today)
-            ->where('status', 'planned')
-            ->first();
+        $reports = Report::where('user_id', $user->id)
+            ->when($request->filled('year'), fn($q) => $q->whereYear('created_at', $request->year))
+            ->when($request->filled('month'), fn($q) => $q->whereMonth('created_at', $request->month))
+            ->when($request->filled('date'), fn($q) => $q->whereDate('created_at', $request->date))
+            ->orderBy('created_at', 'desc')->get();
 
-        $query = Report::where('user_id', $user->id);
-
-        if ($request->filled('year')) {
-            $query->whereYear('created_at', $request->year);
-        }
-        if ($request->filled('month')) {
-            $query->whereMonth('created_at', $request->month);
-        }
-        if ($request->filled('date')) {
-            $query->whereDate('created_at', $request->date);
-        }
-
-        $reports = $query->orderBy('created_at', 'desc')->get();
         $totalReports = Report::where('user_id', $user->id)->count();
+        $years = Report::where('user_id', $user->id)->selectRaw('YEAR(created_at) as year')->distinct()->orderBy('year', 'desc')->pluck('year');
 
-        $years = Report::where('user_id', $user->id)
-            ->selectRaw('YEAR(created_at) as year')
-            ->distinct()
-            ->orderBy('year', 'desc')
-            ->pluck('year');
+        $currentMonth = Carbon::now('Asia/Jakarta')->month;
+        $currentYear = Carbon::now('Asia/Jakarta')->year;
 
-        return view('dashboard', compact(
-            'user', 'shiftName', 'todoDeadline', 'submitDeadlineTime',
-            'reports', 'totalReports', 'years', 'todayReportCompleted', 'todayReportPlanned'
+        $lbMonth = $request->input('lb_month', $currentMonth);
+        $lbDept = $request->input('lb_dept', '');
+
+        $lbQuery = Report::where('hotel_id', $user->hotel_id)
+            ->where('status', 'completed')
+            ->whereMonth('report_date', $lbMonth)
+            ->whereYear('report_date', $currentYear);
+
+        if (!empty($lbDept)) {
+            $lbQuery->whereHas('user', function($q) use ($lbDept) {
+                $q->where('department', $lbDept);
+            });
+        }
+
+        $allHotelScores = $lbQuery->selectRaw('user_id, SUM(total_score) as total_points')
+            ->groupBy('user_id')
+            ->orderByDesc('total_points')
+            ->with('user')
+            ->get();
+
+        $leaderboard = $allHotelScores->take(5);
+
+        $myRankIndex = $allHotelScores->search(fn($item) => $item->user_id == $user->id);
+        $myRank = $myRankIndex !== false ? $myRankIndex + 1 : '-';
+        $myTotalPoints = $allHotelScores->firstWhere('user_id', $user->id)->total_points ?? 0;
+
+        $lbDepartments = User::where('hotel_id', $user->hotel_id)->whereNotNull('department')->select('department')->distinct()->pluck('department');
+
+        return view('dashboard', array_merge(
+            ['user' => $user, 'reports' => $reports, 'totalReports' => $totalReports, 'years' => $years, 'todayReportCompleted' => $todayReportCompleted, 'todayReportPlanned' => $todayReportPlanned, 'todayReport' => $todayReport, 'leaderboard' => $leaderboard, 'lbDepartments' => $lbDepartments, 'lbMonth' => $lbMonth, 'lbDept' => $lbDept, 'myRank' => $myRank, 'myTotalPoints' => $myTotalPoints],
+            ['shiftName' => $shiftConfig['name'], 'todoDeadline' => $shiftConfig['todo'], 'submitDeadlineTime' => $shiftConfig['submit']]
         ));
     }
 }

@@ -191,13 +191,13 @@
                                                     $scoreVal = $r->total_score ?? 0;
 
                                                     $baseS = 0;
-                                                    $totStd = $r->items()->where('is_additional', 0)->count();
-                                                    $totPend = $r->items()->where('is_additional', 0)->where('status', 'pending')->count();
-                                                    $totComp = $r->items()->where('is_additional', 0)->where('status', 'completed')->count();
+                                                    $totStd = $r->items->where('is_additional', 0)->count();
+                                                    $totPend = $r->items->where('is_additional', 0)->where('status', 'pending')->count();
+                                                    $totComp = $r->items->where('is_additional', 0)->where('status', 'completed')->count();
                                                     $valDenom = $totStd - $totPend;
                                                     if ($valDenom > 0) { $baseS = ($totComp / $valDenom) * 100; } elseif ($valDenom === 0 && $totStd > 0) { $baseS = 100; }
 
-                                                    $bonusS = $r->items()->where('is_additional', 1)->where('status', 'completed')->count() * 10;
+                                                    $bonusS = $r->items->where('is_additional', 1)->where('status', 'completed')->count() * 10;
                                                     $penaltyLate = $r->is_late ? -15 : 0;
                                                     $penaltySubmit = $r->is_late_submit ? -15 : 0;
                                                 @endphp
@@ -252,13 +252,13 @@
         @foreach($reports as $r)
             @php
                 $baseS = 0;
-                $totStd = $r->items()->where('is_additional', 0)->count();
-                $totPend = $r->items()->where('is_additional', 0)->where('status', 'pending')->count();
-                $totComp = $r->items()->where('is_additional', 0)->where('status', 'completed')->count();
+                $totStd = $r->items->where('is_additional', 0)->count();
+                $totPend = $r->items->where('is_additional', 0)->where('status', 'pending')->count();
+                $totComp = $r->items->where('is_additional', 0)->where('status', 'completed')->count();
                 $valDenom = $totStd - $totPend;
                 if ($valDenom > 0) { $baseS = ($totComp / $valDenom) * 100; } elseif ($valDenom === 0 && $totStd > 0) { $baseS = 100; }
 
-                $bonusS = $r->items()->where('is_additional', 1)->where('status', 'completed')->count() * 10;
+                $bonusS = $r->items->where('is_additional', 1)->where('status', 'completed')->count() * 10;
                 $penaltyLate = $r->is_late ? -15 : 0;
                 $penaltySubmit = $r->is_late_submit ? -15 : 0;
             @endphp
@@ -324,7 +324,7 @@
                                 </div>
                                 <div class="bg-sky-50 dark:bg-sky-900/20 p-3 rounded-lg border border-sky-100 dark:border-sky-800/30">
                                     <span class="block text-[10px] font-bold text-sky-600 dark:text-sky-400 mb-1">TOTAL SKOR AKHIR</span>
-                                    <span class="text-lg font-black text-sky-700 dark:text-sky-300">{{ $r->total_score ?? 0 }}</span>
+                                    <span class="text-lg font-black text-sky-700 dark:text-sky-300" id="total-score-display-{{ $r->id }}">{{ $r->total_score ?? 0 }}</span>
                                 </div>
                             </div>
 
@@ -350,10 +350,12 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($r->items as $item)
-                                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700 p-4 flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-600 transition duration-300">
-                                    <div>
+                                <div id="item-block-{{ $item->id }}" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700 p-4 flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-600 transition duration-300 relative">
+                                    <button type="button" onclick="deleteExistingItem({{ $item->id }}, {{ $r->id }})" class="absolute top-2 right-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-bold py-1 px-2 rounded-lg text-[10px] transition border border-rose-200 dark:border-rose-800">Hapus Tugas</button>
+
+                                    <div class="mt-4">
                                         <div class="flex items-start justify-between mb-2 gap-2">
-                                            <h5 class="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                                            <h5 class="text-sm font-bold text-slate-800 dark:text-white leading-tight pr-6">
                                                 {{ $item->task ? $item->task->name : ($item->task_name ?? 'Tugas Tambahan') }}
                                             </h5>
                                             <div class="flex items-center gap-1 flex-shrink-0">
@@ -474,9 +476,33 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        window.deleteExistingItem = function(itemId, reportId) {
+            if (!confirm('Yakin ingin menghapus tugas ini secara permanen?')) return;
+            fetch(`/report-items/${itemId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    const block = document.getElementById('item-block-' + itemId);
+                    if (block) block.remove();
+                    const scoreDisplay = document.getElementById('total-score-display-' + reportId);
+                    if (scoreDisplay) scoreDisplay.innerText = data.new_score;
+                } else {
+                    alert('Gagal menghapus tugas.');
+                }
+            })
+            .catch(error => {
+                alert('Terjadi kesalahan jaringan.');
+            });
+        };
+
         document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('complianceChart').getContext('2d');
-
             const isDark = document.documentElement.classList.contains('dark');
             Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
             Chart.defaults.borderColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)';
@@ -498,82 +524,33 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        {
-                            label: 'Tepat Waktu',
-                            data: dataTepat,
-                            borderColor: '#059669',
-                            backgroundColor: gradientTepat,
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            pointBackgroundColor: isDark ? '#1e293b' : '#ffffff',
-                            pointBorderColor: '#059669',
-                        },
-                        {
-                            label: 'Terlambat',
-                            data: dataTelat,
-                            borderColor: '#e11d48',
-                            backgroundColor: gradientTelat,
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            pointBackgroundColor: isDark ? '#1e293b' : '#ffffff',
-                            pointBorderColor: '#e11d48',
-                        }
+                        { label: 'Tepat Waktu', data: dataTepat, borderColor: '#059669', backgroundColor: gradientTepat, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: isDark ? '#1e293b' : '#ffffff', pointBorderColor: '#059669'},
+                        { label: 'Terlambat', data: dataTelat, borderColor: '#e11d48', backgroundColor: gradientTelat, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: isDark ? '#1e293b' : '#ffffff', pointBorderColor: '#e11d48'}
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', align: 'end' }
-                    },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
-                    }
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', align: 'end' } },
+                    scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } }
                 }
             });
         });
 
         function sortTable(n) {
-            let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-            table = document.getElementById("reportTable");
-            switching = true;
-            dir = "asc";
+            let table = document.getElementById("reportTable"), rows, switching = true, i, x, y, shouldSwitch, dir = "asc", switchcount = 0;
             while (switching) {
-                switching = false;
-                rows = table.rows;
+                switching = false; rows = table.rows;
                 for (i = 1; i < (rows.length - 1); i++) {
                     shouldSwitch = false;
-                    x = rows[i].getElementsByTagName("TD")[n];
-                    y = rows[i + 1].getElementsByTagName("TD")[n];
-                    let xVal = x.innerHTML.toLowerCase().replace(/(<([^>]+)>)/gi, "");
-                    let yVal = y.innerHTML.toLowerCase().replace(/(<([^>]+)>)/gi, "");
-                    if (!isNaN(xVal) && !isNaN(yVal)) {
-                        xVal = parseFloat(xVal);
-                        yVal = parseFloat(yVal);
-                    }
-                    if (dir == "asc") {
-                        if (xVal > yVal) { shouldSwitch = true; break; }
-                    } else if (dir == "desc") {
-                        if (xVal < yVal) { shouldSwitch = true; break; }
-                    }
+                    x = rows[i].getElementsByTagName("TD")[n]; y = rows[i + 1].getElementsByTagName("TD")[n];
+                    let xVal = x.innerHTML.toLowerCase().replace(/(<([^>]+)>)/gi, ""), yVal = y.innerHTML.toLowerCase().replace(/(<([^>]+)>)/gi, "");
+                    if (!isNaN(xVal) && !isNaN(yVal)) { xVal = parseFloat(xVal); yVal = parseFloat(yVal); }
+                    if (dir == "asc") { if (xVal > yVal) { shouldSwitch = true; break; } } else if (dir == "desc") { if (xVal < yVal) { shouldSwitch = true; break; } }
                 }
                 if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-                    switchcount ++;
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]); switching = true; switchcount++;
                 } else {
-                    if (switchcount == 0 && dir == "asc") {
-                        dir = "desc";
-                        switching = true;
-                    }
+                    if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
                 }
             }
         }

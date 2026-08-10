@@ -9,8 +9,7 @@ class HotelController extends Controller
 {
     public function index()
     {
-        $hotels = Hotel::all();
-        return view('admin.hotels.index', compact('hotels'));
+        return view('admin.hotels.index', ['hotels' => Hotel::all()]);
     }
 
     public function create()
@@ -20,14 +19,7 @@ class HotelController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'address' => 'nullable|string',
-            'phone_number' => 'nullable|string|max:50',
-        ]);
-
-        Hotel::create($request->all());
-
+        Hotel::create($request->validate(['name' => 'required|string|max:255', 'address' => 'nullable|string', 'phone_number' => 'nullable|string|max:50']));
         return redirect()->route('admin.hotels.index')->with('success', 'Hotel berhasil ditambahkan!');
     }
 
@@ -38,14 +30,7 @@ class HotelController extends Controller
 
     public function update(Request $request, Hotel $hotel)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'address' => 'nullable|string',
-            'phone_number' => 'nullable|string|max:50',
-        ]);
-
-        $hotel->update($request->all());
-
+        $hotel->update($request->validate(['name' => 'required|string|max:255', 'address' => 'nullable|string', 'phone_number' => 'nullable|string|max:50']));
         return redirect()->route('admin.hotels.index')->with('success', 'Data hotel berhasil diperbarui!');
     }
 

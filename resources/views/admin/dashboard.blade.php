@@ -120,10 +120,15 @@
 
                 <div class="bg-sky-50/40 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-sm border border-sky-200/60 dark:border-slate-700 overflow-hidden">
                     <div class="p-6 border-b border-sky-200/60 dark:border-slate-700 flex justify-between items-center bg-sky-100/30 dark:bg-slate-800">
-                        <h3 class="text-lg font-black text-slate-800 dark:text-white">
-                            Dokumentasi Laporan Masuk — <span class="text-sky-700 dark:text-sky-400 uppercase">{{ $currentHotel ?? 'wahyu' }}</span>
-                        </h3>
-                        <span class="text-xs font-bold text-sky-700 dark:text-sky-400 uppercase tracking-wider">Total Ditampilkan: {{ count($reports ?? []) }}</span>
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-lg font-black text-slate-800 dark:text-white">
+                                Dokumentasi Laporan Masuk
+                            </h3>
+                            <span class="px-2.5 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-xs font-black uppercase tracking-wider border border-sky-200 dark:border-sky-800 shadow-sm">
+                                {{ $currentHotel ?? 'wahyu' }}
+                            </span>
+                        </div>
+                        <span class="text-xs font-bold text-sky-700 dark:text-sky-400 uppercase tracking-wider hidden sm:block">Total Ditampilkan: {{ count($reports ?? []) }}</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -248,6 +253,57 @@
                     </div>
 
                     <div class="p-6 overflow-y-auto bg-slate-50/50 dark:bg-slate-900 flex-1">
+                        <div class="mb-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
+                            <h4 class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Ringkasan Performa Shift</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                @php
+                                    $baseS = 0;
+                                    $totStd = $r->items->where('is_additional', 0)->count();
+                                    $totPend = $r->items->where('is_additional', 0)->where('status', 'pending')->count();
+                                    $totComp = $r->items->where('is_additional', 0)->where('status', 'completed')->count();
+                                    $valDenom = $totStd - $totPend;
+                                    if ($valDenom > 0) { $baseS = ($totComp / $valDenom) * 100; } elseif ($valDenom === 0 && $totStd > 0) { $baseS = 100; }
+                                    $bonusS = $r->items->where('is_additional', 1)->where('status', 'completed')->count() * 10;
+                                    $penaltyLate = $r->is_late ? -15 : 0;
+                                    $penaltySubmit = $r->is_late_submit ? -15 : 0;
+                                @endphp
+                                <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                    <span class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">SKOR DASAR (SOP)</span>
+                                    <span class="text-lg font-black text-slate-800 dark:text-white" id="base-score-display-{{ $r->id }}">{{ round($baseS) }}</span>
+                                </div>
+                                <div class="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
+                                    <span class="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">BONUS (EXTRA TASKS)</span>
+                                    <span class="text-lg font-black text-emerald-700 dark:text-emerald-300" id="bonus-score-display-{{ $r->id }}">+{{ $bonusS }}</span>
+                                </div>
+                                <div class="bg-rose-50 dark:bg-rose-900/20 p-3 rounded-lg border border-rose-100 dark:border-rose-800/30">
+                                    <span class="block text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-1">PINALTI KETERLAMBATAN</span>
+                                    <span class="text-lg font-black text-rose-700 dark:text-rose-300" id="penalty-score-display-{{ $r->id }}">
+                                        @if($penaltyLate == 0 && $penaltySubmit == 0)
+                                            0
+                                        @else
+                                            {{ $penaltyLate + $penaltySubmit }}
+                                        @endif
+                                    </span>
+                                </div>
+                                <div class="bg-sky-50 dark:bg-sky-900/20 p-3 rounded-lg border border-sky-100 dark:border-sky-800/30">
+                                    <span class="block text-[10px] font-bold text-sky-600 dark:text-sky-400 mb-1">TOTAL SKOR AKHIR</span>
+                                    <span class="text-lg font-black text-sky-700 dark:text-sky-300" id="total-score-display-{{ $r->id }}">{{ $r->total_score ?? 0 }}</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex gap-2 flex-wrap">
+                                @if(!$r->is_late && !$r->is_late_submit)
+                                    <span class="text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-md text-xs border border-emerald-200 dark:border-emerald-800">✅ Datang & Pulang Tepat Waktu</span>
+                                @endif
+                                @if($r->is_late)
+                                    <span class="text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 rounded-md text-xs border border-amber-200 dark:border-amber-800">⚠️ Terlambat Datang / Submit Todo</span>
+                                @endif
+                                @if($r->is_late_submit)
+                                    <span class="text-rose-600 dark:text-rose-400 font-semibold bg-rose-50 dark:bg-rose-900/30 px-3 py-1.5 rounded-md text-xs border border-rose-200 dark:border-rose-800">🚨 Terlambat Laporan Pulang</span>
+                                @endif
+                            </div>
+                        </div>
+
                         <div class="flex justify-between items-center mb-4">
                             <h4 class="font-black text-slate-800 dark:text-white">Daftar Pekerjaan</h4>
                             <span class="inline-block bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm text-xs font-bold text-slate-600 dark:text-slate-400">
@@ -257,18 +313,30 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($r->items as $item)
-                                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700 p-4 flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-600 transition duration-300">
-                                    <div>
-                                        <div class="flex items-start justify-between mb-2">
-                                            <h5 class="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                                <div id="item-block-{{ $item->id }}" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700 p-4 flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-600 transition duration-300 relative">
+                                    <button type="button" onclick="deleteExistingItem({{ $item->id }}, {{ $r->id }})" class="absolute top-2 right-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-bold py-1 px-2 rounded-lg text-[10px] transition border border-rose-200 dark:border-rose-800">Hapus Tugas</button>
+
+                                    <div class="mt-4">
+                                        <div class="flex items-start justify-between mb-2 gap-2">
+                                            <h5 class="text-sm font-bold text-slate-800 dark:text-white leading-tight pr-6">
                                                 {{ $item->task ? $item->task->name : ($item->task_name ?? 'Tugas Tambahan') }}
                                             </h5>
-                                            @if($item->is_additional)
-                                                <span class="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 text-[10px] font-black rounded uppercase ml-2 flex-shrink-0">Extra</span>
-                                            @endif
+                                            <div class="flex items-center gap-1 flex-shrink-0">
+                                                @if($item->status == 'completed')
+                                                    <span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-black rounded uppercase">Selesai</span>
+                                                @else
+                                                    <span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-black rounded uppercase">Pending</span>
+                                                @endif
+                                                @if($item->is_additional)
+                                                    <span class="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 text-[10px] font-black rounded uppercase">Extra</span>
+                                                @endif
+                                            </div>
                                         </div>
                                         @if($item->notes)
-                                            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg mb-3 border border-slate-100 dark:border-slate-700">{{ $item->notes }}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg mb-2 border border-slate-100 dark:border-slate-700">{{ $item->notes }}</p>
+                                        @endif
+                                        @if($item->obstacle_note)
+                                            <p class="text-xs text-rose-600 dark:text-rose-400 font-medium bg-rose-50 dark:bg-rose-900/30 p-2 rounded-lg mb-3 border border-rose-100 dark:border-rose-800/30">Kendala: {{ $item->obstacle_note }}</p>
                                         @endif
                                     </div>
 
@@ -276,7 +344,7 @@
                                         <div class="flex-1">
                                             <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Sebelum</p>
                                             @if($item->before_image)
-                                                <img src="{{ asset('storage/' . $item->before_image) }}" @click="imageModalSrc = '{{ asset('storage/' . $item->before_image) }}'; imageModalOpen = true" class="w-full h-20 object-cover rounded-lg cursor-zoom-in hover:opacity-80 transition shadow-sm border border-slate-100 dark:border-slate-700">
+                                                <img src="{{ asset('storage/' . $item->before_image) }}" @click="imageModalSrc = '{{ asset('storage/' . $item->before_image) }}'; imageModalOpen = true" class="w-full h-20 object-cover rounded-lg cursor-zoom-in hover:opacity-80 transition shadow-sm border border-slate-100 dark:border-slate-700" loading="lazy">
                                             @else
                                                 <div class="w-full h-20 bg-slate-100 dark:bg-slate-700/50 rounded-lg flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 font-bold border border-slate-200 dark:border-slate-700">Kosong</div>
                                             @endif
@@ -284,7 +352,7 @@
                                         <div class="flex-1">
                                             <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Sesudah</p>
                                             @if($item->after_image)
-                                                <img src="{{ asset('storage/' . $item->after_image) }}" @click="imageModalSrc = '{{ asset('storage/' . $item->after_image) }}'; imageModalOpen = true" class="w-full h-20 object-cover rounded-lg cursor-zoom-in hover:opacity-80 transition shadow-sm border border-slate-100 dark:border-slate-700">
+                                                <img src="{{ asset('storage/' . $item->after_image) }}" @click="imageModalSrc = '{{ asset('storage/' . $item->after_image) }}'; imageModalOpen = true" class="w-full h-20 object-cover rounded-lg cursor-zoom-in hover:opacity-80 transition shadow-sm border border-slate-100 dark:border-slate-700" loading="lazy">
                                             @else
                                                 <div class="w-full h-20 bg-slate-100 dark:bg-slate-700/50 rounded-lg flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 font-bold border border-slate-200 dark:border-slate-700">Kosong</div>
                                             @endif
@@ -308,7 +376,7 @@
                  x-transition:leave-start="opacity-100 scale-100"
                  x-transition:leave-end="opacity-0 scale-90"
                  class="relative z-[110] max-w-5xl w-full mx-4 flex flex-col items-center">
-                <img @click="imageModalOpen = false" :src="imageModalSrc" class="max-h-[90vh] w-auto max-w-full rounded-2xl shadow-2xl border-4 border-white/10 object-contain cursor-zoom-out">
+                <img @click="imageModalOpen = false" :src="imageModalSrc" class="max-h-[90vh] w-auto max-w-full rounded-2xl shadow-2xl border-4 border-white/10 object-contain cursor-zoom-out" title="Klik untuk menutup" loading="lazy">
             </div>
         </div>
 
@@ -350,6 +418,41 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }
+
+        window.deleteExistingItem = function(itemId, reportId) {
+            if (!confirm('Yakin ingin menghapus tugas ini secara permanen?')) return;
+            fetch(`/report-items/${itemId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    const block = document.getElementById('item-block-' + itemId);
+                    if (block) block.remove();
+
+                    if(data.is_completed) {
+                        const scoreDisplay = document.getElementById('total-score-display-' + reportId);
+                        const baseDisplay = document.getElementById('base-score-display-' + reportId);
+                        const bonusDisplay = document.getElementById('bonus-score-display-' + reportId);
+                        const penaltyDisplay = document.getElementById('penalty-score-display-' + reportId);
+
+                        if (scoreDisplay) scoreDisplay.innerText = data.total_score;
+                        if (baseDisplay) baseDisplay.innerText = data.base_score;
+                        if (bonusDisplay) bonusDisplay.innerText = '+' + data.bonus_score;
+                        if (penaltyDisplay) penaltyDisplay.innerText = data.penalty == 0 ? '0' : '-' + data.penalty;
+                    }
+                } else {
+                    alert('Gagal menghapus tugas.');
+                }
+            })
+            .catch(error => {
+                alert('Terjadi kesalahan jaringan.');
+            });
+        };
 
         document.addEventListener('DOMContentLoaded', function() {
             const hotelSelector = document.getElementById('hotel-selector');

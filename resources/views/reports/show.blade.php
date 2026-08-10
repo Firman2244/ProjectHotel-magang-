@@ -126,10 +126,10 @@
 
                         <div id="master-task-container" class="space-y-6">
                             @foreach($report->items as $index => $item)
-                                <div class="border {{ $item->is_additional ? 'border-amber-300 dark:border-amber-700/50 bg-amber-50/40 dark:bg-amber-900/10' : 'border-sky-200 dark:border-slate-700 bg-sky-50/40 dark:bg-slate-700/30' }} p-6 rounded-2xl relative shadow-sm hover:shadow transition additional-item-block">
+                                <div id="item-block-{{ $item->id }}" class="border {{ $item->is_additional ? 'border-amber-300 dark:border-amber-700/50 bg-amber-50/40 dark:bg-amber-900/10' : 'border-sky-200 dark:border-slate-700 bg-sky-50/40 dark:bg-slate-700/30' }} p-6 rounded-2xl relative shadow-sm hover:shadow transition additional-item-block">
 
                                     @if($item->is_additional)
-                                        <a href="{{ route('reports.items.destroy', $item->id) }}" onclick="return confirm('Yakin ingin menghapus tugas tambahan ini?');" class="absolute top-4 right-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-bold py-1.5 px-3 rounded-lg text-xs z-10 transition">Hapus</a>
+                                        <button type="button" onclick="deleteExistingItem({{ $item->id }})" class="absolute top-4 right-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-bold py-1.5 px-3 rounded-lg text-xs z-10 transition">Hapus</button>
                                     @endif
 
                                     <div class="mb-4 {{ $item->is_additional ? 'pr-20' : '' }}">
@@ -215,7 +215,7 @@
                 @else
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-6">
                         @foreach($report->items as $item)
-                            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700 p-4 flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-600 transition">
+                            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700 p-4 flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-600 transition duration-300">
                                 <div>
                                     <div class="flex items-start justify-between mb-2">
                                         <h4 class="text-sm font-bold text-slate-800 dark:text-white leading-tight">
@@ -290,10 +290,34 @@
 
         <script>
             window.addEventListener("pageshow", function (event) {
-                if (event.persisted) {
+                if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
                     window.location.reload();
                 }
             });
+
+            window.deleteExistingItem = function(itemId) {
+                if (!confirm('Yakin ingin menghapus tugas tambahan ini secara permanen?')) return;
+
+                fetch(`/report-items/${itemId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        const block = document.getElementById('item-block-' + itemId);
+                        if (block) block.remove();
+                    } else {
+                        alert('Gagal menghapus tugas tambahan.');
+                    }
+                })
+                .catch(error => {
+                    alert('Terjadi kesalahan jaringan.');
+                });
+            };
 
             let currentFileInput = null;
             const uploadModal = document.getElementById('upload-choice-modal');

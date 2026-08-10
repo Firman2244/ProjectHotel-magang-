@@ -15,27 +15,13 @@ use Carbon\Carbon;
 class ProcessReportImage implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
     public int $tries = 3;
 
-    protected int $itemId;
-    protected string $imageType;
-    protected string $tempPath;
-    protected ?int $hotelId;
-
-    public function __construct(int $itemId, string $imageType, string $tempPath, ?int $hotelId)
-    {
-        $this->itemId = $itemId;
-        $this->imageType = $imageType;
-        $this->tempPath = $tempPath;
-        $this->hotelId = $hotelId;
-    }
+    public function __construct(protected int $itemId, protected string $imageType, protected string $tempPath, protected ?int $hotelId) {}
 
     public function handle(): void
     {
-        if (!Storage::disk('public')->exists($this->tempPath)) {
-            return;
-        }
+        if (!Storage::disk('public')->exists($this->tempPath)) return;
 
         $item = ReportItem::find($this->itemId);
         if (!$item) {
@@ -44,71 +30,17 @@ class ProcessReportImage implements ShouldQueue
         }
 
         try {
-            $absoluteTempPath = Storage::disk('public')->path($this->tempPath);
-            $dateFolder = Carbon::now()->format('Y-m');
-            $hotelFolder = $this->hotelId ? "hotel_{$this->hotelId}" : "hotel_general";
-            $directory = "reports/{$hotelFolder}/{$dateFolder}";
+            $directory = "reports/" . ($this->hotelId ? "hotel_{$this->hotelId}" : "hotel_general") . "/" . Carbon::now()->format('Y-m');
+            if (!Storage::disk('public')->exists($directory)) Storage::disk('public')->makeDirectory($directory);
 
-            if (!Storage::disk('public')->exists($directory)) {
-                Storage::disk('public')->makeDirectory($directory);
-            }
+            $finalPath = "{$directory}/" . uniqid('rpt_') . '.jpg';
 
-            $fileName = uniqid('rpt_') . '.jpg';
-            $finalPath = "{$directory}/{$fileName}";
-            $absoluteFinalPath = Storage::disk('public')->path($finalPath);
+            \App\Helpers\processImage(Storage::disk('public')->path($this->tempPath), Storage::disk('public')->path($finalPath), 1200);
 
-            $this->processWithNativePHP($absoluteTempPath, $absoluteFinalPath);
-
-            $item->update([
-                $this->imageType => $finalPath
-            ]);
-
+            $item->update([$this->imageType => $finalPath]);
             Storage::disk('public')->delete($this->tempPath);
-
         } catch (\Exception $e) {
             Log::error("Job Compress Image Gagal: " . $e->getMessage());
         }
-    }
-
-    private function processWithNativePHP(string $sourcePath, string $destinationPath): void
-    {
-        list($width, $height, $type) = getimagesize($sourcePath);
-        $maxW = 1200;
-
-        if ($width > $maxW) {
-            $newW = $maxW;
-            $newH = (int) round($height * ($maxW / $width));
-        } else {
-            $newW = $width;
-            $newH = $height;
-        }
-
-        switch ($type) {
-            case IMAGETYPE_JPEG:
-                $srcImg = imagecreatefromjpeg($sourcePath);
-                break;
-            case IMAGETYPE_PNG:
-                $srcImg = imagecreatefrompng($sourcePath);
-                break;
-            case IMAGETYPE_WEBP:
-                $srcImg = imagecreatefromwebp($sourcePath);
-                break;
-            default:
-                copy($sourcePath, $destinationPath);
-                return;
-        }
-
-        $dstImg = imagecreatetruecolor($newW, $newH);
-
-        if ($type == IMAGETYPE_PNG || $type == IMAGETYPE_WEBP) {
-            $white = imagecolorallocate($dstImg, 255, 255, 255);
-            imagefill($dstImg, 0, 0, $white);
-        }
-
-        imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newW, $newH, $width, $height);
-        imagejpeg($dstImg, $destinationPath, 80);
-
-        imagedestroy($srcImg);
-        imagedestroy($dstImg);
     }
 }

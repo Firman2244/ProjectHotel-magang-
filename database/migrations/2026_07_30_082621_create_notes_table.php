@@ -12,7 +12,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('hotel_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->string('title');
             $table->text('message');
+            $table->string('image')->nullable();
             $table->boolean('is_read')->default(false);
             $table->timestamps();
         });

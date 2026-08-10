@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('hotels', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Contoh: 'Hotel Wahyu', 'Hotel Nirwana'
+            $table->string('name');
             $table->string('address')->nullable();
             $table->timestamps();
         });

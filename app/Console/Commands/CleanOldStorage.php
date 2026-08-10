@@ -12,7 +12,6 @@ use Carbon\Carbon;
 class CleanOldStorage extends Command
 {
     protected $signature = 'storage:clean-old';
-
     protected $description = 'Hapus gambar lama secara otomatis';
 
     public function handle()
@@ -23,23 +22,18 @@ class CleanOldStorage extends Command
             return;
         }
 
-        $days = $setting->auto_delete_days;
-        $thresholdDate = Carbon::now()->subDays($days)->timestamp;
+        $thresholdDate = Carbon::now()->subDays($setting->auto_delete_days)->timestamp;
 
-        $directories = ['reports', 'notes'];
-
-        foreach ($directories as $dir) {
+        foreach (['reports', 'notes'] as $dir) {
             $files = Storage::disk('public')->files($dir);
 
             foreach ($files as $file) {
-                $lastModified = Storage::disk('public')->lastModified($file);
-
-                if ($lastModified < $thresholdDate) {
+                if (Storage::disk('public')->lastModified($file) < $thresholdDate) {
                     Storage::disk('public')->delete($file);
 
                     if ($dir == 'notes') {
                         Note::where('image', $file)->update(['image' => null]);
-                    } elseif ($dir == 'reports') {
+                    } else {
                         ReportItem::where('image', $file)->update(['image' => null]);
                     }
                 }

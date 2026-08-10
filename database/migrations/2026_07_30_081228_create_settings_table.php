@@ -1,5 +1,3 @@
-// database/migrations/xxxx_xx_xx_create_settings_table.php
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -12,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
+            $table->integer('auto_delete_days')->default(0);
             $table->string('key')->unique();
             $table->text('value')->nullable();
             $table->timestamps();

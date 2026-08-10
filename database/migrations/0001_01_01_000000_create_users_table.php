@@ -14,10 +14,11 @@ return new class extends Migration
             $table->foreignId('shift_id')->nullable()->constrained('shifts')->nullOnDelete();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('avatar')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role')->default('staff');
-            $table->string('department')->nullable();
+            $table->string('role')->default('staff')->index();
+            $table->string('department')->nullable()->index();
             $table->rememberToken();
             $table->timestamps();
         });

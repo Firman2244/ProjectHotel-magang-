@@ -2,64 +2,61 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Note;
-use App\Http\Requests\SubmitNoteRequest;
-use App\Jobs\ProcessNoteImage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class NoteController extends Controller
 {
-    public function store(SubmitNoteRequest $request)
+    public function store(Request $request)
     {
-        // 1. Buat data Note dulu tanpa gambar
-        $note = Note::create([
-            'user_id'  => Auth::id(),
-            'hotel_id' => Auth::user()->hotel_id,
-            'title'    => $request->title,
-            'message'  => $request->message,
-            'image'    => null,
-            'is_read'  => false
+        $request->validate([
+            'category' => 'required|string',
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+            'image' => 'nullable|image|max:5120'
         ]);
 
-        // 2. Jika ada foto, simpan ke temp dan lempar ke Job
+        $imagePath = null;
         if ($request->hasFile('image')) {
-            $tempPath = $request->file('image')->store('notes/tmp', 'public');
-
-            if (app()->environment('local')) {
-                ProcessNoteImage::dispatchSync($note->id, $tempPath, Auth::user()->hotel_id);
-            } else {
-                ProcessNoteImage::dispatch($note->id, $tempPath, Auth::user()->hotel_id);
-            }
+            $imagePath = $request->file('image')->store('notes', 'public');
         }
 
-        return redirect()->back()->with('success', 'Catatan kerusakan berhasil dikirim ke Admin!');
+        $finalTitle = '[' . strtoupper($request->category) . '] ' . $request->title;
+
+        Note::create([
+            'user_id' => Auth::id(),
+            'title' => $finalTitle,
+            'message' => $request->message,
+            'image' => $imagePath,
+            'is_read' => false,
+        ]);
+
+        return redirect()->back()->with('success', 'Catatan berhasil dikirim ke Admin!');
     }
 
     public function indexAdmin()
     {
-        $notes = Note::with('user')
-            ->orderBy('is_read', 'asc')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
+        if (Auth::user()->role !== 'admin') abort(403);
+        $notes = Note::with('user')->orderBy('created_at', 'desc')->paginate(20);
         return view('admin.notes.index', compact('notes'));
     }
 
     public function markAsRead(Note $note)
     {
+        if (Auth::user()->role !== 'admin') abort(403);
         $note->update(['is_read' => true]);
         return redirect()->back()->with('success', 'Catatan ditandai sudah dibaca.');
     }
 
     public function destroyAdmin(Note $note)
     {
+        if (Auth::user()->role !== 'admin') abort(403);
         if ($note->image && Storage::disk('public')->exists($note->image)) {
             Storage::disk('public')->delete($note->image);
         }
-
         $note->delete();
-
-        return redirect()->back()->with('success', 'Laporan kerusakan berhasil dihapus.');
+        return redirect()->back()->with('success', 'Catatan berhasil dihapus.');
     }
 }
