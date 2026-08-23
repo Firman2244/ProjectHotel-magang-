@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Hotel;
+use App\Models\PointHistory;
+use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -14,15 +16,17 @@ class StaffController extends Controller
 {
     public function index(Request $request)
     {
-        $hotelSlug = $request->query('hotel', 'wahyu');
-        $currentHotel = Hotel::where('name', 'LIKE', "%{$hotelSlug}%")->first();
+        $reqHotel = $request->query('hotel');
+        $currentHotel = $reqHotel ? Hotel::find($reqHotel) : Hotel::first();
+        $hotelId = $currentHotel?->id;
 
         $staffs = User::where('role', '!=', 'admin')
-            ->with('branch')
-            ->when($currentHotel, fn($q) => $q->where('hotel_id', $currentHotel->id))
+            ->with('branch:id,name')
+            ->when($hotelId, fn($q) => $q->where('hotel_id', $hotelId))
             ->get();
 
         $hotels = Hotel::all();
+        $hotelSlug = $currentHotel?->id;
         return view('admin.staff.index', compact('staffs', 'hotels', 'hotelSlug', 'currentHotel'));
     }
 
@@ -81,27 +85,65 @@ class StaffController extends Controller
 
     public function leaderboard(Request $request)
     {
-        $hotelSlug = $request->query('hotel', 'wahyu');
-        $hotelId = Hotel::where('name', 'LIKE', "%{$hotelSlug}%")->value('id');
-        $hotels = Hotel::all();
+        $reqHotel = $request->query('hotel');
+        $currentHotel = $reqHotel ? Hotel::find($reqHotel) : Hotel::first();
+        $hotelId = $currentHotel?->id;
 
         $selectedMonth = $request->query('month', Carbon::now('Asia/Jakarta')->month);
         $selectedYear = $request->query('year', Carbon::now('Asia/Jakarta')->year);
-        $months = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
+
+        $usersQuery = User::with('branch:id,name')
+            ->where('role', '!=', 'admin')
+            ->when($hotelId, fn($q) => $q->where('hotel_id', $hotelId))
+            ->addSelect([
+                'total_score' => PointHistory::selectRaw('COALESCE(SUM(points), 0)')
+                    ->whereColumn('user_id', 'users.id')
+                    ->whereMonth('created_at', $selectedMonth)
+                    ->whereYear('created_at', $selectedYear),
+                'total_shift' => Report::selectRaw('COUNT(*)')
+                    ->whereColumn('user_id', 'users.id')
+                    ->where('status', 'completed')
+                    ->whereMonth('report_date', $selectedMonth)
+                    ->whereYear('report_date', $selectedYear)
+            ]);
+
+        $staffs = $usersQuery->get()->map(function($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'department' => $user->department,
+                'role' => $user->role,
+                'branch' => $user->branch ? $user->branch->name : '-',
+                'total_shift' => $user->total_shift,
+                'total_score' => (float) $user->total_score,
+            ];
+        })->filter(function($staff) {
+            return $staff['total_score'] > 0 || $staff['total_shift'] > 0;
+        })->sortByDesc('total_score')->values();
+
+        $hotels = Hotel::all();
+        $hotelSlug = $currentHotel?->id;
+        $months = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
         $years = range(Carbon::now('Asia/Jakarta')->year - 2, Carbon::now('Asia/Jakarta')->year + 1);
 
-        $staffs = User::where('role', 'staff')
-            ->with('branch')
-            ->when($hotelId, fn($q) => $q->where('hotel_id', $hotelId))
-            ->withCount(['reports as total_shift' => fn($q) => $q->where('status', 'completed')->whereMonth('report_date', $selectedMonth)->whereYear('report_date', $selectedYear)])
-            ->withSum(['reports as total_score' => fn($q) => $q->where('status', 'completed')->whereMonth('report_date', $selectedMonth)->whereYear('report_date', $selectedYear)], 'total_score')
-            ->having('total_shift', '>', 0)
-            ->get()
-            ->map(fn($staff) => [
-                'id' => $staff->id, 'name' => $staff->name, 'email' => $staff->email, 'department' => $staff->department,
-                'branch' => $staff->branch?->name ?? '-', 'total_shift' => $staff->total_shift ?? 0, 'total_score' => $staff->total_score ?? 0,
-            ])->sortByDesc('total_score')->values();
+        return view('admin.staff.scores', compact(
+            'staffs', 'hotels', 'hotelSlug', 'hotelId',
+            'selectedMonth', 'selectedYear', 'months', 'years'
+        ));
+    }
 
-        return view('admin.staff.scores', compact('staffs', 'hotels', 'hotelSlug', 'hotelId', 'selectedMonth', 'selectedYear', 'months', 'years'));
+    public function pointHistoryModal(int $id)
+    {
+        $staff = User::with('branch:id,name')->findOrFail($id);
+        $histories = PointHistory::where('user_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.staff.points-history', compact('staff', 'histories'));
     }
 }

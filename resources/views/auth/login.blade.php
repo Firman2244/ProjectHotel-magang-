@@ -11,28 +11,19 @@
 </head>
 <body class="font-sans antialiased bg-sky-950/5 dark:bg-slate-900 min-h-screen flex items-center justify-center p-6 relative overflow-hidden transition-colors duration-300">
 
-    <!-- Dekorasi Background -->
     <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-sky-400/20 dark:bg-sky-400/10 rounded-full blur-3xl"></div>
     <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-sky-600/10 dark:bg-sky-600/5 rounded-full blur-3xl"></div>
 
-    <!-- Tombol Dark Mode Kapsul (Pojok Kanan Atas) -->
     <div class="absolute top-6 right-6 z-50">
-        <button type="button" id="theme-toggle-btn" class="theme-toggle relative inline-flex h-8 w-16 items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors duration-300 focus:outline-none shadow-inner border border-slate-300 dark:border-slate-600">
+        <button type="button" id="theme-toggle-btn" class="theme-toggle relative inline-flex h-8 w-16 items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors duration-300 focus:outline-none shadow-inner border border-slate-300 dark:border-slate-600 cursor-pointer">
             <span class="sr-only">Toggle Dark Mode</span>
-            <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
-                <!-- Icon Matahari (Light Mode) -->
-                <svg class="w-4 h-4 text-amber-500 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 4.22a1 1 0 011.415 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm-9.855 0a1 1 0 010 1.414l-.849.849a1 1 0 01-1.414-1.414l.849-.849a1 1 0 011.414 0zM10 6a4 4 0 100 8 4 4 0 000-8zm-4 4a1 1 0 11-2 0 1 1 0 012 0zm11-1a1 1 0 110 2h-1a1 1 0 110-2h1zM5.636 15.636a1 1 0 011.414 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm9.855 0a1 1 0 010 1.414l.849.849a1 1 0 01-1.414-1.414l.849-.849a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"></path>
-                </svg>
-                <!-- Icon Bulan (Dark Mode) -->
-                <svg class="w-4 h-4 text-slate-700 block dark:hidden" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                </svg>
+            <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white dark:bg-slate-800 shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
+                <svg class="w-4 h-4 text-amber-500 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg class="w-4 h-4 text-indigo-400 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
             </span>
         </button>
     </div>
 
-    <!-- Kotak Login -->
     <div class="w-full max-w-md bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-sky-100 dark:border-slate-700 p-8 relative z-10 transition-colors duration-300">
         <div class="text-center mb-10">
             <h1 class="font-black text-2xl text-slate-800 dark:text-white tracking-tight">LAPORAN HOTEL</h1>
@@ -70,20 +61,17 @@
         </form>
     </div>
 
-    <!-- Script Pengatur Dark Mode Lokal -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const toggleBtn = document.getElementById('theme-toggle-btn');
             const htmlElement = document.documentElement;
 
-            // Cek status dark mode saat load
             if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 htmlElement.classList.add('dark');
             } else {
                 htmlElement.classList.remove('dark');
             }
 
-            // Fungsi klik tombol
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
                     htmlElement.classList.toggle('dark');

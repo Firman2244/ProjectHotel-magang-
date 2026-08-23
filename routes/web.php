@@ -14,66 +14,79 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+Route::get('/', fn () => redirect()->route('login'));
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.destroy');
 
-    Route::get('/reports/history', [ReportController::class, 'history'])->name('reports.history');
-    Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
-    Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
-    Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
-    Route::put('/reports/{report}/final', [ReportController::class, 'updateFinal'])->name('reports.updateFinal');
-    Route::delete('/reports/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
+    Route::controller(ProfileController::class)->prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', 'edit')->name('edit');
+        Route::patch('/', 'update')->name('update');
+        Route::delete('/', 'destroy')->name('destroy');
+        Route::delete('/avatar', 'deleteAvatar')->name('avatar.destroy');
+    });
+
+    Route::controller(ReportController::class)->prefix('reports')->name('reports.')->group(function () {
+        Route::get('/history', 'history')->name('history');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{report}', 'show')->name('show');
+        Route::put('/{report}/final', 'updateFinal')->name('updateFinal');
+        Route::delete('/{report}', 'destroy')->name('destroy');
+    });
 
     Route::delete('/report-items/{item}', [ReportController::class, 'destroyItem'])->name('reports.items.destroy');
 
-    Route::post('/notes', [NoteController::class, 'store'])->name('notes.store');
+    Route::controller(NoteController::class)->prefix('notes')->name('notes.')->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::post('/{note}/resolve', 'resolveTask')->name('resolve');
+    });
 
-    Route::middleware(['role:admin'])->group(function () {
-        Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-        Route::resource('admin/hotels', HotelController::class)->names([
-            'index' => 'admin.hotels.index', 'create' => 'admin.hotels.create', 'store' => 'admin.hotels.store',
-            'edit' => 'admin.hotels.edit', 'update' => 'admin.hotels.update', 'destroy' => 'admin.hotels.destroy',
-        ]);
+        Route::resource('hotels', HotelController::class);
 
-        Route::resource('admin/staff', StaffController::class)->names([
-            'index' => 'admin.staff.index', 'create' => 'admin.staff.create', 'store' => 'admin.staff.store',
-            'edit' => 'admin.staff.edit', 'update' => 'admin.staff.update', 'destroy' => 'admin.staff.destroy',
-        ]);
+        Route::resource('staff', StaffController::class);
+        Route::get('/staff-scores', [StaffController::class, 'leaderboard'])->name('staff.scores');
+        Route::get('/staff/{id}/point-history', [StaffController::class, 'pointHistoryModal'])->name('staff.points');
 
-        Route::get('/admin/staff-scores', [StaffController::class, 'leaderboard'])->name('admin.staff.scores');
+        Route::resource('tasks', TaskController::class);
 
-        Route::resource('admin/tasks', TaskController::class)->names([
-            'index' => 'admin.tasks.index', 'create' => 'admin.tasks.create', 'store' => 'admin.tasks.store',
-            'edit' => 'admin.tasks.edit', 'update' => 'admin.tasks.update', 'destroy' => 'admin.tasks.destroy',
-        ]);
+        Route::controller(ShiftController::class)->prefix('shifts')->name('shifts.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/update', 'updateShift')->name('update');
+            Route::post('/double-shift', 'grantDoubleShift')->name('grant_double_shift');
+            Route::post('/config', 'updateConfig')->name('config');
+        });
 
-        Route::get('/admin/shifts', [ShiftController::class, 'index'])->name('admin.shifts.index');
-        Route::post('/admin/shifts/update', [ShiftController::class, 'updateShift'])->name('admin.shifts.update');
+        Route::controller(AdminReportController::class)->prefix('reports')->name('reports.')->group(function () {
+            Route::get('/summary', 'index')->name('summary');
+            Route::get('/export', 'export')->name('export');
+            Route::get('/{id}/detail', 'show')->name('detail');
+        });
 
-        Route::get('/admin/reports/summary', [AdminReportController::class, 'index'])->name('admin.reports.summary');
-        Route::get('/admin/reports/export', [AdminReportController::class, 'export'])->name('admin.reports.export');
-        Route::get('/admin/reports/{id}/detail', [AdminReportController::class, 'show'])->name('admin.reports.detail');
+        Route::patch('/report-items/{item}/status', [ReportController::class, 'updateItemStatus']);
+        Route::patch('/reports/{report}/verify-all', [ReportController::class, 'verifyAllTasks']);
 
-        Route::get('/admin/storage', [StorageController::class, 'index'])->name('admin.storage.index');
-        Route::post('/admin/storage/settings', [StorageController::class, 'updateSettings'])->name('admin.storage.settings');
-        Route::delete('/admin/storage/clear', [StorageController::class, 'clearManual'])->name('admin.storage.clear');
+        Route::controller(StorageController::class)->prefix('storage')->name('storage.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/settings', 'updateSettings')->name('settings');
+            Route::delete('/clear', 'clearManual')->name('clear');
+        });
 
-        Route::get('/admin/notes', [NoteController::class, 'indexAdmin'])->name('admin.notes.index');
-        Route::patch('/admin/notes/{note}/read', [NoteController::class, 'markAsRead'])->name('admin.notes.read');
-        Route::delete('/admin/notes/{note}', [NoteController::class, 'destroyAdmin'])->name('admin.notes.destroy');
+        Route::controller(NoteController::class)->prefix('notes')->name('notes.')->group(function () {
+            Route::get('/', 'indexAdmin')->name('index');
+            Route::patch('/{note}/read', 'markAsRead')->name('read');
+            Route::patch('/{note}/verify', 'verifyTask')->name('verify');
+            Route::delete('/{note}', 'destroyAdmin')->name('destroy');
+        });
 
-        Route::get('/admin/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity-logs');
-        Route::delete('/admin/activity-logs/clear', [ActivityLogController::class, 'clear'])->name('admin.activity-logs.clear');
+        Route::controller(ActivityLogController::class)->prefix('activity-logs')->name('activity-logs.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::delete('/clear', 'clear')->name('clear');
+        });
     });
 });
 

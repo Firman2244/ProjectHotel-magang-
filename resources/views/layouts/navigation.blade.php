@@ -1,21 +1,21 @@
-<nav x-data="{ open: false }" class="bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700 transition-colors duration-300 relative z-50">
+<nav x-data="{ open: false }" class="bg-white dark:bg-slate-800 border-b border-sky-100 dark:border-slate-700 transition-colors duration-300 relative z-50">
     <style>
-        .dark .bg-white { background-color: #1e293b !important; }
-        .dark .border-gray-100, .dark .border-slate-700 { border-color: #334155 !important; }
-
-        /* Memaksa seluruh teks menu, link, dan dropdown jadi terang di dark mode */
-        .dark nav a, .dark nav span, .dark nav div, .dark .text-gray-500, .dark .text-gray-600, .dark .text-gray-700 {
-            color: #f8fafc !important;
+        /* Memperbaiki Dropdown Bawaan Laravel Breeze agar support Dark Mode */
+        .dark [x-transition\:leave] > div.bg-white {
+            background-color: #1e293b !important; /* bg-slate-800 */
         }
 
-        .dark .text-gray-400 { color: #94a3b8 !important; }
-        .dark a:hover, .dark button:hover { color: #38bdf8 !important; }
-        .dark .hover\:bg-gray-100:hover, .dark .dark\:hover\:bg-slate-700:hover { background-color: #334155 !important; }
-
-        .dark .bg-indigo-50 { background-color: rgba(14, 165, 233, 0.1) !important; }
-        .dark .border-indigo-400 { border-color: #38bdf8 !important; }
-        .dark .text-indigo-700 { color: #38bdf8 !important; }
-        .dark .ring-opacity-5 { --tw-ring-opacity: 0.1 !important; --tw-ring-color: #000 !important; }
+        .dark .space-x-8 > a {
+            color: #94a3b8 !important;
+        }
+        .dark .space-x-8 > a:hover {
+            color: #f1f5f9 !important;
+        }
+        .dark .space-x-8 > a.border-indigo-400,
+        .dark .space-x-8 > a.dark\:border-indigo-400 {
+            color: #38bdf8 !important;
+            border-bottom-color: #38bdf8 !important;
+        }
     </style>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -43,16 +43,16 @@
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-5">
                 <button type="button" class="theme-toggle relative inline-flex h-8 w-16 items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors duration-300 focus:outline-none shadow-inner border border-slate-300 dark:border-slate-600">
                     <span class="sr-only">Toggle Dark Mode</span>
-                    <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
-                        <svg class="w-4 h-4 text-amber-500 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 4.22a1 1 0 011.415 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm-9.855 0a1 1 0 010 1.414l-.849.849a1 1 0 01-1.414-1.414l-.849-.849a1 1 0 011.414 0zM10 6a4 4 0 100 8 4 4 0 000-8zm-4 4a1 1 0 11-2 0 1 1 0 012 0zm11-1a1 1 0 110 2h-1a1 1 0 110-2h1zM5.636 15.636a1 1 0 011.414 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm9.855 0a1 1 0 010 1.414l.849.849a1 1 0 01-1.414-1.414l-.849-.849a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"></path></svg>
-                        <svg class="w-4 h-4 text-slate-700 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white dark:bg-slate-800 shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
+                        <svg class="w-4 h-4 text-amber-500 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="w-4 h-4 text-indigo-400 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                     </span>
                 </button>
 
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-bold rounded-md text-slate-200 dark:text-slate-200 bg-transparent hover:text-white focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-bold rounded-md text-slate-700 dark:text-slate-200 bg-transparent hover:text-sky-600 dark:hover:text-white focus:outline-none transition ease-in-out duration-150">
+                            <div>{{ Auth::user()->name }} ({{ Auth::user()->department ?? 'Staff' }})</div>
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -62,15 +62,16 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <div class="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700">
-                            <x-dropdown-link :href="route('profile.edit')" class="font-bold dark:text-slate-200 dark:hover:bg-slate-700">
+                        <!-- Menghapus kotak styling tambahan, cukup isi kontennya saja -->
+                        <div class="py-1">
+                            <x-dropdown-link :href="route('profile.edit')" class="font-bold text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-slate-700">
                                 {{ __('Profile') }}
                             </x-dropdown-link>
 
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <x-dropdown-link :href="route('logout')"
-                                        onclick="event.preventDefault(); this.closest('form').submit();" class="font-bold text-rose-600 dark:text-rose-400 dark:hover:bg-slate-700">
+                                        onclick="event.preventDefault(); this.closest('form').submit();" class="font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700">
                                     {{ __('Log Out') }}
                                 </x-dropdown-link>
                             </form>
@@ -82,9 +83,9 @@
             <div class="-me-2 flex items-center sm:hidden gap-3">
                 <button type="button" class="theme-toggle relative inline-flex h-8 w-16 items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors duration-300 focus:outline-none shadow-inner border border-slate-300 dark:border-slate-600">
                     <span class="sr-only">Toggle Dark Mode</span>
-                    <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
-                        <svg class="w-4 h-4 text-amber-500 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 4.22a1 1 0 011.415 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm-9.855 0a1 1 0 010 1.414l-.849.849a1 1 0 01-1.414-1.414l-.849-.849a1 1 0 011.414 0zM10 6a4 4 0 100 8 4 4 0 000-8zm-4 4a1 1 0 11-2 0 1 1 0 012 0zm11-1a1 1 0 110 2h-1a1 1 0 110-2h1zM5.636 15.636a1 1 0 011.414 0l.849.849a1 1 0 01-1.414 1.414l-.849-.849a1 1 0 010-1.414zm9.855 0a1 1 0 010 1.414l.849.849a1 1 0 01-1.414-1.414l-.849-.849a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"></path></svg>
-                        <svg class="w-4 h-4 text-slate-700 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    <span class="theme-toggle-ball flex h-6 w-6 transform items-center justify-center rounded-full bg-white dark:bg-slate-800 shadow-md transition-transform duration-300 translate-x-1 dark:translate-x-9">
+                        <svg class="w-4 h-4 text-amber-500 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="w-4 h-4 text-indigo-400 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                     </span>
                 </button>
 
@@ -98,34 +99,34 @@
         </div>
     </div>
 
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white dark:bg-slate-800 border-t border-sky-100 dark:border-slate-700">
         <div class="pt-2 pb-3 space-y-1">
             @if(Auth::user()->role === 'admin')
-                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')" class="font-bold">
+                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')" class="font-bold text-slate-700 dark:text-slate-200">
                     {{ __('Dashboard Admin') }}
                 </x-responsive-nav-link>
             @else
-                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class="font-bold">
+                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class="font-bold text-slate-700 dark:text-slate-200">
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
             @endif
         </div>
 
-        <div class="pt-4 pb-1 border-t border-slate-200 dark:border-slate-700">
+        <div class="pt-4 pb-1 border-t border-sky-100 dark:border-slate-700">
             <div class="px-4">
                 <div class="font-black text-base text-slate-800 dark:text-white">{{ Auth::user()->name }}</div>
                 <div class="font-medium text-sm text-slate-500 dark:text-slate-400">{{ Auth::user()->email }}</div>
             </div>
 
             <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')" class="font-bold">
+                <x-responsive-nav-link :href="route('profile.edit')" class="font-bold text-slate-700 dark:text-slate-200">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault(); this.closest('form').submit();" class="font-bold text-rose-500 dark:text-rose-400">
+                            onclick="event.preventDefault(); this.closest('form').submit();" class="font-bold text-rose-600 dark:text-rose-400">
                         {{ __('Log Out') }}
                     </x-responsive-nav-link>
                 </form>

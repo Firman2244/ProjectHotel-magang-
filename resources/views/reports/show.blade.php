@@ -108,10 +108,10 @@
                         </span>
 
                         @if(Auth::user()->role === 'staff' && Auth::id() == $report->user_id && $report->status === 'planned')
-                            <form action="{{ route('reports.destroy', $report->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus laporan ini? Seluruh data yang belum disubmit akan hilang secara permanen.');">
+                            <form id="delete-report-form" action="{{ route('reports.destroy', $report->id) }}" method="POST" class="inline-block">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold py-2 px-4 rounded-xl transition text-sm border border-rose-200 dark:border-rose-800/50">
+                                <button type="button" onclick="openDeleteModal()" class="bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold py-2 px-4 rounded-xl transition text-sm border border-rose-200 dark:border-rose-800/50">
                                     Hapus Laporan
                                 </button>
                             </form>
@@ -135,7 +135,8 @@
                                     <div class="mb-4 {{ $item->is_additional ? 'pr-20' : '' }}">
                                         <span class="font-black text-lg text-slate-800 dark:text-white flex items-center gap-2">
                                             <span class="{{ $item->is_additional ? 'text-amber-600 dark:text-amber-400' : 'text-sky-600 dark:text-sky-400' }}">{{ $index + 1 }}.</span>
-                                            {{ $item->is_additional ? ($item->task_name ?? str_replace('Tugas Tambahan: ', '', explode(' - ', $item->notes)[0])) : ($item->task->name ?? 'Tugas') }}
+                                            <!-- FIX DEAD COLUMN: Pakai custom_task_name -->
+                                            {{ $item->is_additional ? ($item->custom_task_name ?? str_replace('Tugas Tambahan: ', '', explode(' - ', $item->notes)[0])) : ($item->task->name ?? 'Tugas') }}
                                             @if($item->is_additional)
                                                 <span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-black rounded uppercase ml-2 border border-amber-200 dark:border-amber-800">Extra</span>
                                             @endif
@@ -219,7 +220,7 @@
                                 <div>
                                     <div class="flex items-start justify-between mb-2">
                                         <h4 class="text-sm font-bold text-slate-800 dark:text-white leading-tight">
-                                            {{ $item->task ? $item->task->name : ($item->task_name ?? 'Tugas Tambahan') }}
+                                            {{ $item->task ? $item->task->name : ($item->custom_task_name ?? 'Tugas Tambahan') }}
                                         </h4>
                                         @if($item->is_additional)
                                             <span class="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 text-[10px] font-black rounded uppercase ml-2 flex-shrink-0 border border-sky-200 dark:border-sky-800">Extra</span>
@@ -288,12 +289,44 @@
             </div>
         </div>
 
+        <div id="custom-delete-modal" class="fixed inset-0 z-[120] items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden transition-opacity opacity-0">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl border border-rose-100 dark:border-slate-700 text-center transform transition-all duration-300">
+                <div class="w-16 h-16 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner border border-rose-200 dark:border-rose-800">🗑️</div>
+                <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">Hapus Laporan?</h3>
+                <p class="text-slate-500 dark:text-slate-400 mb-6 font-medium text-sm">Apakah Anda yakin ingin menghapus laporan ini? Seluruh data yang belum disubmit akan hilang secara permanen.</p>
+                <div class="flex space-x-3">
+                    <button type="button" onclick="closeDeleteModal()" class="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3.5 px-4 rounded-xl transition-colors duration-200 border border-slate-200 dark:border-slate-600 shadow-sm">
+                        Batal
+                    </button>
+                    <button type="button" onclick="document.getElementById('delete-report-form').submit()" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md shadow-rose-600/20 transition-colors duration-200 border border-rose-700">
+                        Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <script>
             window.addEventListener("pageshow", function (event) {
                 if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
                     window.location.reload();
                 }
             });
+
+            window.openDeleteModal = function() {
+                const modal = document.getElementById('custom-delete-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => modal.classList.remove('opacity-0'), 10);
+            };
+
+            window.closeDeleteModal = function() {
+                const modal = document.getElementById('custom-delete-modal');
+                modal.classList.add('opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }, 300);
+            };
 
             window.deleteExistingItem = function(itemId) {
                 if (!confirm('Yakin ingin menghapus tugas tambahan ini secara permanen?')) return;
@@ -360,19 +393,27 @@
                 const btnSubmitFinal = document.getElementById('btn-submit-final');
                 const confirmModal = document.getElementById('custom-confirm-modal');
                 const finalReportForm = document.getElementById('final-report-form');
+                const objectUrls = [];
 
                 document.addEventListener('change', (e) => {
                     if (e.target.classList.contains('image-input')) {
                         const file = e.target.files[0];
                         if (file) {
                             const uploadContainer = e.target.closest('.upload-container');
-                            uploadContainer.querySelector('.upload-placeholder p').innerText = "Mengompres foto...";
+                            const placeholderElement = uploadContainer.querySelector('.upload-placeholder p');
+                            const originalText = placeholderElement.innerText;
 
-                            const reader = new FileReader();
-                            reader.readAsDataURL(file);
-                            reader.onload = (event) => {
+                            // Tampilkan status loading biar staf gak bingung pas nge-freeze sebentar
+                            placeholderElement.innerText = "⏳ Mengompres foto...";
+                            uploadContainer.classList.add('animate-pulse');
+
+                            // Jeda 50ms biar browser sempat merender tulisan "Mengompres foto..."
+                            setTimeout(() => {
+                                const objectUrl = URL.createObjectURL(file);
+                                objectUrls.push(objectUrl);
                                 const img = new Image();
-                                img.src = event.target.result;
+                                img.src = objectUrl;
+
                                 img.onload = () => {
                                     const canvas = document.createElement('canvas');
                                     const MAX_WIDTH = 1000;
@@ -394,15 +435,26 @@
                                         dataTransfer.items.add(new File([blob], file.name, { type: 'image/jpeg' }));
                                         e.target.files = dataTransfer.files;
 
-                                        uploadContainer.querySelector('.preview-img').src = canvas.toDataURL('image/jpeg', 0.8);
+                                        const compressedUrl = URL.createObjectURL(blob);
+                                        objectUrls.push(compressedUrl);
+
+                                        uploadContainer.querySelector('.preview-img').src = compressedUrl;
                                         uploadContainer.querySelector('.preview-img').classList.remove('hidden');
                                         uploadContainer.querySelector('.preview-overlay').classList.remove('hidden');
                                         uploadContainer.querySelector('.upload-placeholder').classList.add('hidden');
+
+                                        // Balikin state semula
+                                        placeholderElement.innerText = originalText;
+                                        uploadContainer.classList.remove('animate-pulse');
                                     }, 'image/jpeg', 0.8);
                                 };
-                            };
+                            }, 50);
                         }
                     }
+                });
+
+                window.addEventListener('beforeunload', () => {
+                    objectUrls.forEach(url => URL.revokeObjectURL(url));
                 });
 
                 document.querySelectorAll('.status-select').forEach(select => {
@@ -426,7 +478,8 @@
 
                             <div class="mb-4 pr-24">
                                 <label class="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Nama Tugas Tambahan</label>
-                                <input type="text" name="new_items[${newTaskCounter}][task_name]" class="block w-full border-amber-200 dark:border-amber-700/50 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-medium focus:border-amber-500 dark:focus:border-amber-400 focus:ring-amber-500 rounded-xl shadow-sm py-3 px-4 transition" required>
+                                <!-- FIX DEAD COLUMN: Pakai custom_task_name -->
+                                <input type="text" name="new_items[${newTaskCounter}][custom_task_name]" class="block w-full border-amber-200 dark:border-amber-700/50 bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-medium focus:border-amber-500 dark:focus:border-amber-400 focus:ring-amber-500 rounded-xl shadow-sm py-3 px-4 transition" required>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

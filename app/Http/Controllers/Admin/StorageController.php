@@ -5,23 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use App\Models\ReportItem;
+use App\Models\Note;
 use Illuminate\Support\Facades\Storage;
 
 class StorageController extends Controller
 {
     private function getSetting()
     {
-        $setting = Setting::find(1);
-        
-        if (!$setting) {
-            $setting = new Setting();
-            $setting->id = 1;
-            $setting->key = 'storage_config';
-            $setting->auto_delete_days = 0;
-            $setting->save();
-        }
-        
-        return $setting;
+        return Setting::firstOrCreate(
+            ['id' => 1],
+            ['key' => 'storage_config', 'auto_delete_days' => 0]
+        );
     }
 
     public function index()
@@ -30,12 +25,12 @@ class StorageController extends Controller
         $autoDeleteDays = $setting->auto_delete_days;
 
         $allFiles = [];
-        
-        if (Storage::disk('public')->exists('reports')) {
-            $allFiles = array_merge($allFiles, Storage::disk('public')->allFiles('reports'));
-        }
-        if (Storage::disk('public')->exists('notes')) {
-            $allFiles = array_merge($allFiles, Storage::disk('public')->allFiles('notes'));
+        $disk = Storage::disk('public');
+
+        foreach (['reports', 'notes'] as $dir) {
+            if ($disk->exists($dir)) {
+                $allFiles = array_merge($allFiles, $disk->allFiles($dir));
+            }
         }
 
         $totalBytes = 0;
@@ -44,12 +39,12 @@ class StorageController extends Controller
         foreach ($allFiles as $file) {
             if (str_contains($file, 'reports/tmp')) continue;
 
-            $size = Storage::disk('public')->size($file);
+            $size = $disk->size($file);
             $totalBytes += $size;
             $images[] = [
                 'url' => asset('storage/' . $file),
                 'size' => round($size / 1024, 2),
-                'last_modified' => Storage::disk('public')->lastModified($file)
+                'last_modified' => $disk->lastModified($file)
             ];
         }
 
@@ -75,19 +70,26 @@ class StorageController extends Controller
 
     public function clearManual()
     {
-        $directories = ['reports', 'notes'];
-        
-        foreach ($directories as $dir) {
-            if (Storage::disk('public')->exists($dir)) {
-                $files = Storage::disk('public')->allFiles($dir);
+        $disk = Storage::disk('public');
+
+        foreach (['reports', 'notes'] as $dir) {
+            if ($disk->exists($dir)) {
+                $files = $disk->allFiles($dir);
                 foreach ($files as $file) {
                     if (!str_contains($file, 'reports/tmp')) {
-                        Storage::disk('public')->delete($file);
+                        $disk->delete($file);
                     }
                 }
             }
         }
-        
-        return redirect()->back()->with('success', 'Seluruh gambar berhasil dihapus secara permanen!');
+
+        ReportItem::query()->update([
+            'before_image' => null,
+            'after_image' => null
+        ]);
+
+        Note::query()->update(['image' => null]);
+
+        return redirect()->back()->with('success', 'Seluruh gambar fisik dan data di sistem berhasil dihapus bersih!');
     }
 }

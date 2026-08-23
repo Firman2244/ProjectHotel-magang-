@@ -22,7 +22,7 @@ class SubmitFinalReportRequest extends FormRequest
             'items.*.after_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
             'items.*.notes' => ['nullable', 'string', 'max:255'],
             'new_items' => ['nullable', 'array', 'max:20'],
-            'new_items.*.task_name' => ['nullable', 'string', 'max:255'],
+            'new_items.*.custom_task_name' => ['nullable', 'string', 'max:255'],
             'new_items.*.before_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
             'new_items.*.after_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
             'new_items.*.notes' => ['nullable', 'string', 'max:255'],

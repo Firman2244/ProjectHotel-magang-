@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->string('before_image')->nullable();
             $table->string('after_image')->nullable();
-            $table->enum('status', ['planned', 'completed', 'pending', 'void'])->default('planned')->index();
+            $table->enum('status', ['planned', 'completed', 'pending', 'void', 'verified', 'rejected'])->default('planned')->index();
             $table->text('obstacle_note')->nullable();
             $table->timestamps();
         });

@@ -13,28 +13,28 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buat Data Shift
-        $shift1 = Shift::create(['name' => 'Shift 1', 'start_time' => '07:00:00', 'end_time' => '16:00:00']);
-        $shift2 = Shift::create(['name' => 'Shift 2', 'start_time' => '13:00:00', 'end_time' => '22:00:00']);
-        $shift3 = Shift::create(['name' => 'Shift 3', 'start_time' => '22:00:00', 'end_time' => '07:00:00']);
+        // 1. Buat Data Shift (Ditambahkan deadline_time untuk melibas Hardcode)
+        $shift1 = Shift::create(['name' => 'Shift 1', 'start_time' => '07:00:00', 'end_time' => '16:00:00', 'deadline_time' => '15:30:00']);
+        $shift2 = Shift::create(['name' => 'Shift 2', 'start_time' => '13:00:00', 'end_time' => '22:00:00', 'deadline_time' => '21:30:00']);
+        $shift3 = Shift::create(['name' => 'Shift 3', 'start_time' => '22:00:00', 'end_time' => '07:00:00', 'deadline_time' => '06:30:00']);
 
         // 2. Buat Data Hotel
         $hotelWahyu = Hotel::create(['name' => 'Hotel Wahyu', 'address' => 'Jl. Wahyu No. 1']);
         $hotelNirwana = Hotel::create(['name' => 'Hotel Nirwana', 'address' => 'Jl. Nirwana No. 2']);
 
-        // 3. Buat Akun Admin (Pak Wahyu)
+        // 3. Buat Akun SUPER ADMIN Sentral (Bebas dari ikatan Hotel & Shift)
         User::create([
-            'name' => 'Admin Wahyu',
-            'email' => 'admin@wahyu.com',
+            'name' => 'Admin Hotel',
+            'email' => 'admin@hotel.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
-            'hotel_id' => $hotelWahyu->id,
-            'shift_id' => $shift1->id,
+            'hotel_id' => null, // Bebas akses semua cabang
+            'shift_id' => null, // Admin tidak terikat jadwal absensi
         ]);
 
-        // 4. Buat Akun Staff/Karyawan Contoh
+        // 4. Buat Akun Staff (Housekeeping) - Uji Coba Todo List
         User::create([
-            'name' => 'Budi Staff (Housekeeping)',
+            'name' => 'Budi Budiman',
             'email' => 'budi@wahyu.com',
             'password' => Hash::make('password'),
             'role' => 'staff',
@@ -43,9 +43,21 @@ class DatabaseSeeder extends Seeder
             'shift_id' => $shift1->id,
         ]);
 
+        // 5. Buat Akun Teknisi (Engineering) - Uji Coba Sistem Ticketing Sanyo Rusak
+        User::create([
+            'name' => 'Joko Susilo',
+            'email' => 'joko@wahyu.com',
+            'password' => Hash::make('password'),
+            'role' => 'staff',
+            'department' => 'Engineering',
+            'hotel_id' => $hotelWahyu->id,
+            'shift_id' => $shift1->id,
+        ]);
 
+
+        // 6. Data Master Tugas (SOP)
         Task::insert([
-
+            // Front Office
             ['department' => 'Front Office', 'name' => 'Briefing pagi dan pembagian tugas', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Front Office', 'name' => 'Mengecek occupancy, arrival, departure, dan in-house guest', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Front Office', 'name' => 'Proses check-in tamu', 'created_at' => now(), 'updated_at' => now()],
@@ -62,7 +74,7 @@ class DatabaseSeeder extends Seeder
             ['department' => 'Front Office', 'name' => 'Membuat laporan shift', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Front Office', 'name' => 'Serah terima antar shift', 'created_at' => now(), 'updated_at' => now()],
 
-
+            // Housekeeping
             ['department' => 'Housekeeping', 'name' => 'Morning briefing', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Housekeeping', 'name' => 'Pembagian room attendant dan area public area', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Housekeeping', 'name' => 'Membersihkan kamar check-out', 'created_at' => now(), 'updated_at' => now()],
@@ -79,7 +91,7 @@ class DatabaseSeeder extends Seeder
             ['department' => 'Housekeeping', 'name' => 'Melaporkan kerusakan kamar kepada Engineering', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Housekeeping', 'name' => 'Update room status ke Front Office', 'created_at' => now(), 'updated_at' => now()],
 
-
+            // Food & Beverage Service
             ['department' => 'Food & Beverage Service', 'name' => 'Briefing sebelum operasional', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Service', 'name' => 'Menyiapkan restoran sebelum buka', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Service', 'name' => 'Menata meja (table setting)', 'created_at' => now(), 'updated_at' => now()],
@@ -96,7 +108,7 @@ class DatabaseSeeder extends Seeder
             ['department' => 'Food & Beverage Service', 'name' => 'Closing kasir restoran', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Service', 'name' => 'Membersihkan seluruh peralatan pelayanan', 'created_at' => now(), 'updated_at' => now()],
 
-
+            // Food & Beverage Product (Kitchen)
             ['department' => 'Food & Beverage Product (Kitchen)', 'name' => 'Briefing dapur', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Product (Kitchen)', 'name' => 'Menerima bahan baku', 'created_at' => now(), 'updated_at' => now()],
             ['department' => 'Food & Beverage Product (Kitchen)', 'name' => 'Mengecek kualitas bahan makanan', 'created_at' => now(), 'updated_at' => now()],

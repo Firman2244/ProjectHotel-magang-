@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Report;
+use App\Models\Shift;
+use App\Models\Note;
+use App\Models\PointHistory;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -13,65 +16,127 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        if ($user->role === 'admin') return redirect()->route('admin.dashboard');
 
-        $today = Carbon::today('Asia/Jakarta')->toDateString();
-        $shiftConfig = match ($user->shift_id) {
-            1 => ['name' => 'Shift 1 (Pagi)', 'todo' => '07:00 - 07:30', 'submit' => '15:30'],
-            2 => ['name' => 'Shift 2 (Siang)', 'todo' => '13:00 - 13:30', 'submit' => '21:30'],
-            3 => ['name' => 'Shift 3 (Malam)', 'todo' => '22:00 - 22:30', 'submit' => '06:30'],
-            default => ['name' => 'Shift Tidak Valid', 'todo' => '--:--', 'submit' => '--:--'],
-        };
+        assert($user instanceof User);
 
-        $baseReportQuery = Report::where('user_id', $user->id)->where('report_date', $today);
-        $todayReport = (clone $baseReportQuery)->first();
-
-        $todayReportCompleted = $todayReport && $todayReport->status === 'completed';
-        $todayReportPlanned = $todayReport && $todayReport->status === 'planned' ? $todayReport : null;
-
-        $reports = Report::where('user_id', $user->id)
-            ->when($request->filled('year'), fn($q) => $q->whereYear('created_at', $request->year))
-            ->when($request->filled('month'), fn($q) => $q->whereMonth('created_at', $request->month))
-            ->when($request->filled('date'), fn($q) => $q->whereDate('created_at', $request->date))
-            ->orderBy('created_at', 'desc')->get();
-
-        $totalReports = Report::where('user_id', $user->id)->count();
-        $years = Report::where('user_id', $user->id)->selectRaw('YEAR(created_at) as year')->distinct()->orderBy('year', 'desc')->pluck('year');
-
-        $currentMonth = Carbon::now('Asia/Jakarta')->month;
-        $currentYear = Carbon::now('Asia/Jakarta')->year;
-
-        $lbMonth = $request->input('lb_month', $currentMonth);
-        $lbDept = $request->input('lb_dept', '');
-
-        $lbQuery = Report::where('hotel_id', $user->hotel_id)
-            ->where('status', 'completed')
-            ->whereMonth('report_date', $lbMonth)
-            ->whereYear('report_date', $currentYear);
-
-        if (!empty($lbDept)) {
-            $lbQuery->whereHas('user', function($q) use ($lbDept) {
-                $q->where('department', $lbDept);
-            });
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
         }
 
-        $allHotelScores = $lbQuery->selectRaw('user_id, SUM(total_score) as total_points')
+        $now = Carbon::now('Asia/Jakarta');
+        $today = $now->toDateString();
+
+        $shiftId = $user->shift_id;
+        $activeReportDate = ($shiftId == 3 && $now->hour < 12)
+            ? $now->copy()->subDay()->toDateString()
+            : $today;
+
+        $totalReports = Report::where('user_id', $user->id)->count();
+
+        $shift = Shift::find($shiftId);
+        $shiftName = $shift ? $shift->name : 'Belum Diatur';
+        $todoDeadline = $shift
+            ? Carbon::parse($shift->start_time)->format('H:i') . ' - ' . Carbon::parse($shift->deadline_time)->format('H:i')
+            : '--:--';
+        $submitDeadlineTime = $shift ? Carbon::parse($shift->deadline_time)->format('H:i') : '15:30';
+
+        $todayReport = Report::where('user_id', $user->id)
+            ->where('report_date', $activeReportDate)
+            ->first();
+
+        $todayReportCompleted = $todayReport && $todayReport->status === 'completed';
+
+        $todayReportPlanned = Report::where('user_id', $user->id)
+            ->where('report_date', $activeReportDate)
+            ->where('status', '!=', 'completed')
+            ->latest()
+            ->first();
+
+        $hasDoubleShiftPermit = $user->hasActiveDoubleShiftPermit($now);
+
+        $baseReportCompleted = Report::where('user_id', $user->id)
+            ->where('report_date', $activeReportDate)
+            ->where('shift_id', $shiftId)
+            ->where('status', 'completed')
+            ->exists();
+
+        // [FIX LAG] Tambah 'user' ke eager loading untuk mematikan query N+1
+        $reportsQuery = Report::with(['items.task', 'user'])->where('user_id', $user->id);
+
+        if ($request->filled('date')) {
+            $reportsQuery->whereDate('created_at', $request->date);
+        }
+        if ($request->filled('month')) {
+            $reportsQuery->whereMonth('created_at', $request->month);
+        }
+        if ($request->filled('year')) {
+            $reportsQuery->whereYear('created_at', $request->year);
+        }
+
+        $reports = $reportsQuery->orderBy('created_at', 'desc')->limit(50)->get();
+
+        $years = Report::where('user_id', $user->id)
+            ->selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->pluck('year');
+        if ($years->isEmpty()) {
+            $years = collect([$now->year]);
+        }
+
+        $lbMonth = $request->query('lb_month', $now->month);
+        $lbYear = $request->query('lb_year', $now->year);
+        $lbDept = $request->query('lb_dept');
+
+        $lbDepartments = User::where('role', 'staff')
+            ->where('hotel_id', $user->hotel_id)
+            ->whereNotNull('department')
+            ->distinct()
+            ->pluck('department');
+
+        $leaderboard = PointHistory::select('user_id')
+            ->selectRaw('SUM(points) as total_points')
+            ->whereHas('user', fn ($query) => $query->where('hotel_id', $user->hotel_id))
+            ->whereMonth('created_at', $lbMonth)
+            ->whereYear('created_at', $lbYear)
+            ->when($lbDept, function ($q) use ($lbDept) {
+                $q->whereHas('user', fn ($query) => $query->where('department', $lbDept));
+            })
             ->groupBy('user_id')
             ->orderByDesc('total_points')
-            ->with('user')
+            ->with(['user' => fn($query) => $query->select('id', 'name', 'department')])
             ->get();
 
-        $leaderboard = $allHotelScores->take(5);
+        $myTotalPoints = PointHistory::where('user_id', $user->id)->sum('points');
+        $pointHistories = PointHistory::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get();
 
-        $myRankIndex = $allHotelScores->search(fn($item) => $item->user_id == $user->id);
-        $myRank = $myRankIndex !== false ? $myRankIndex + 1 : '-';
-        $myTotalPoints = $allHotelScores->firstWhere('user_id', $user->id)->total_points ?? 0;
+        $rankIndex = $leaderboard->search(fn ($lead) => $lead->user_id == $user->id);
+        $myRank = $rankIndex !== false ? $rankIndex + 1 : null;
 
-        $lbDepartments = User::where('hotel_id', $user->hotel_id)->whereNotNull('department')->select('department')->distinct()->pluck('department');
+        $engineeringTasks = collect();
+        if ($user->department === 'Engineering') {
+            $engineeringTasks = Note::with(['user:id,name', 'resolver:id,name'])
+                ->where('category', 'Kerusakan')
+                ->whereIn('status', ['open', 'resolved'])
+                ->orderBy('created_at', 'desc')
+                ->limit(20)
+                ->get();
+        }
 
-        return view('dashboard', array_merge(
-            ['user' => $user, 'reports' => $reports, 'totalReports' => $totalReports, 'years' => $years, 'todayReportCompleted' => $todayReportCompleted, 'todayReportPlanned' => $todayReportPlanned, 'todayReport' => $todayReport, 'leaderboard' => $leaderboard, 'lbDepartments' => $lbDepartments, 'lbMonth' => $lbMonth, 'lbDept' => $lbDept, 'myRank' => $myRank, 'myTotalPoints' => $myTotalPoints],
-            ['shiftName' => $shiftConfig['name'], 'todoDeadline' => $shiftConfig['todo'], 'submitDeadlineTime' => $shiftConfig['submit']]
+        $engineeringStaff = User::where('department', 'Engineering')
+            ->where('hotel_id', $user->hotel_id)
+            ->where('id', '!=', $user->id)
+            ->select('id', 'name')
+            ->get();
+
+        return view('dashboard', compact(
+            'user', 'totalReports', 'shiftName', 'todoDeadline', 'submitDeadlineTime',
+            'todayReportCompleted', 'todayReportPlanned', 'reports', 'years',
+            'hasDoubleShiftPermit', 'baseReportCompleted', 'todayReport',
+            'leaderboard', 'myTotalPoints', 'myRank', 'lbDepartments', 'lbMonth', 'lbDept',
+            'engineeringTasks', 'engineeringStaff', 'pointHistories'
         ));
     }
 }
