@@ -56,7 +56,6 @@ class NoteController extends Controller
 
         $imagePaths = [];
         if ($request->hasFile('resolved_images')) {
-            // FIX FOLDER STRUCTURE: Simpan per hotel_id dan bulan/tahun biar gampang diclean-up
             $hotelId = Auth::user()->hotel_id;
             $month = Carbon::now('Asia/Jakarta')->format('Y-m');
 
@@ -175,7 +174,7 @@ class NoteController extends Controller
 
     private function optimizeImage(string $filePath)
     {
-        $fullPath = storage_path('app/public/' . $filePath);
+        $fullPath = Storage::disk('public')->path($filePath);
         if (!file_exists($fullPath)) return;
 
         $info = @getimagesize($fullPath);
