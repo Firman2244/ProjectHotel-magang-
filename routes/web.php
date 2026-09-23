@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\StorageController;
+use App\Http\Controllers\Admin\WorkloadController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/staff/{id}/point-history', [StaffController::class, 'pointHistoryModal'])->name('staff.points');
 
         Route::resource('tasks', TaskController::class);
+        Route::get('/workload', [WorkloadController::class, 'index'])->name('workload.index');
 
         Route::controller(ShiftController::class)->prefix('shifts')->name('shifts.')->group(function () {
             Route::get('/', 'index')->name('index');

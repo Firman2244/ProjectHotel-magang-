@@ -344,10 +344,19 @@ class ReportController extends Controller
         $this->abortUnlessAdmin();
 
         $request->validate([
-            'status' => 'required|in:verified,rejected,completed'
+            'status' => 'required|in:verified,rejected,completed',
+            // Kategori beban kerja WAJIB dipilih manual oleh admin saat ACC (verified).
+            // Sistem tidak menentukan kategori secara otomatis.
+            'difficulty' => 'required_if:status,verified|nullable|in:ringan,sedang,berat',
         ]);
 
-        $item->update(['status' => $request->status]);
+        $updateData = ['status' => $request->status];
+
+        if ($request->status === 'verified') {
+            $updateData['difficulty'] = $request->difficulty;
+        }
+
+        $item->update($updateData);
 
         $report = $item->report;
         $report->unsetRelation('items');
@@ -358,11 +367,16 @@ class ReportController extends Controller
             ->update(['points' => $scores['total_score']]);
 
         $user = Auth::user();
-        ActivityLog::record($user->id, 'VERIFY_TASK', "Admin merubah status tugas ID: {$item->id} menjadi {$request->status}");
+        $logMessage = "Admin merubah status tugas ID: {$item->id} menjadi {$request->status}";
+        if ($request->status === 'verified' && $request->difficulty) {
+            $logMessage .= " (Kategori: " . ucfirst($request->difficulty) . ")";
+        }
+        ActivityLog::record($user->id, 'VERIFY_TASK', $logMessage);
 
         return response()->json([
             'success' => true,
             'new_status' => $request->status,
+            'new_difficulty' => $item->difficulty,
             'new_score' => $scores['total_score'],
             'base_score' => $scores['base_score'],
             'bonus_score' => $scores['bonus_score'],

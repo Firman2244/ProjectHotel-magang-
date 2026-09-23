@@ -291,9 +291,14 @@
                             @foreach($r->items as $item)
                                 <div id="item-block-{{ $item->id }}" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700 p-4 flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-600 transition duration-300 relative">
 
-                                    <div class="absolute top-2 right-2 flex gap-1">
-                                        <button type="button" onclick="updateTaskStatus({{ $item->id }}, {{ $r->id }}, 'verified')" class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 font-bold py-1 px-3 rounded-lg text-[10px] transition border border-emerald-200 dark:border-emerald-800 shadow-sm">✅ ACC</button>
-                                        <button type="button" onclick="updateTaskStatus({{ $item->id }}, {{ $r->id }}, 'rejected')" class="bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-bold py-1 px-3 rounded-lg text-[10px] transition border border-rose-200 dark:border-rose-800 shadow-sm">❌ Tolak</button>
+                                    <div class="absolute top-2 right-2 flex items-center gap-1">
+                                        <select id="difficulty-select-{{ $item->id }}" title="Pilih kategori beban kerja sebelum ACC" class="text-[9px] font-bold rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-1.5 py-1 shadow-sm focus:border-sky-500 focus:ring-sky-500 h-[26px]">
+                                            <option value="ringan" {{ $item->difficulty == 'ringan' ? 'selected' : '' }}>Ringan</option>
+                                            <option value="sedang" {{ ($item->difficulty == 'sedang' || !$item->difficulty) ? 'selected' : '' }}>Sedang</option>
+                                            <option value="berat" {{ $item->difficulty == 'berat' ? 'selected' : '' }}>Berat</option>
+                                        </select>
+                                        <button type="button" onclick="updateTaskStatus({{ $item->id }}, {{ $r->id }}, 'verified')" class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 font-bold py-1 px-3 rounded-lg text-[10px] transition border border-emerald-200 dark:border-emerald-800 shadow-sm h-[26px]">✅ ACC</button>
+                                        <button type="button" onclick="updateTaskStatus({{ $item->id }}, {{ $r->id }}, 'rejected')" class="bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-bold py-1 px-3 rounded-lg text-[10px] transition border border-rose-200 dark:border-rose-800 shadow-sm h-[26px]">❌ Tolak</button>
                                     </div>
 
                                     <div class="mt-8">
@@ -314,6 +319,17 @@
 
                                                 @if($item->is_additional)
                                                     <span class="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 text-[10px] font-black rounded uppercase">Extra</span>
+                                                @endif
+
+                                                @if($item->difficulty)
+                                                    @php
+                                                        $diffColor = [
+                                                            'berat' => 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+                                                            'sedang' => 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+                                                            'ringan' => 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+                                                        ][$item->difficulty] ?? '';
+                                                    @endphp
+                                                    <span id="difficulty-badge-{{ $item->id }}" class="px-2 py-0.5 {{ $diffColor }} text-[10px] font-black rounded uppercase border">{{ $item->difficulty }}</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -402,9 +418,18 @@
         if (filterDept) filterDept.addEventListener('change', autoSubmitForm);
         if (filterStatus) filterStatus.addEventListener('change', autoSubmitForm);
 
-        // INI FUNGSI JS YANG DIAMBIL 100% PERSIS DARI SUMMARY LU.
-        // GAK GW TAMBAH ATAU KURANGIN NAMA VARIABELNYA BIAR GA MATI LAGI.
+        // INI FUNGSI JS YANG DIAMBIL 100% PERSIS DARI SUMMARY LU (VERSI TERBARU, SUDAH ADA KATEGORI BEBAN KERJA).
         window.updateTaskStatus = function(itemId, reportId, status) {
+            let difficulty = null;
+            if (status === 'verified') {
+                const diffSelect = document.getElementById('difficulty-select-' + itemId);
+                difficulty = diffSelect ? diffSelect.value : null;
+                if (!difficulty) {
+                    alert('Pilih kategori beban kerja (Ringan/Sedang/Berat) dulu sebelum ACC.');
+                    return;
+                }
+            }
+
             fetch(`/admin/report-items/${itemId}/status`, {
                 method: 'PATCH',
                 headers: {
@@ -412,11 +437,28 @@
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ status: status })
+                body: JSON.stringify({ status: status, difficulty: difficulty })
             })
             .then(response => response.json())
             .then(data => {
                 if(data.success) {
+                    if (status === 'verified' && data.new_difficulty) {
+                        const diffColors = {
+                            berat: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+                            sedang: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+                            ringan: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+                        };
+                        let diffBadge = document.getElementById('difficulty-badge-' + itemId);
+                        if (!diffBadge) {
+                            diffBadge = document.createElement('span');
+                            diffBadge.id = 'difficulty-badge-' + itemId;
+                            const badge = document.getElementById('status-badge-' + itemId);
+                            if (badge && badge.parentNode) badge.parentNode.appendChild(diffBadge);
+                        }
+                        diffBadge.className = 'px-2 py-0.5 text-[10px] font-black rounded uppercase border ' + (diffColors[data.new_difficulty] || '');
+                        diffBadge.innerText = data.new_difficulty;
+                    }
+
                     const scoreDisplay = document.getElementById('total-score-display-' + reportId);
                     const baseDisplay = document.getElementById('base-score-display-' + reportId);
                     const bonusDisplay = document.getElementById('bonus-score-display-' + reportId);
