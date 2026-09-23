@@ -4,7 +4,7 @@ Ini adalah aplikasi berbasis web yang dibuat khusus untuk mengelola laporan hari
 
 ## 🔗 Tautan Akses & Berkas Serah Terima
 
-- **Link Demo (InfinityFree):** [http://laporanharianhotel.infinityfree.io](https://laporhotel.online/?utm_source=gemini)
+- **Link Demo (InfinityFree):** [https://laporhotel.online/?utm_source=gemini](https://laporhotel.online/?utm_source=gemini)
 - **Link Repository GitHub:** [github.com/Firman2244/ProjectHotel-magang-](https://github.com/Firman2244/ProjectHotel-magang-)
 - **Link Google Drive (ZIP & SQL):** [Google Drive Folder Berkas Serah Terima](https://drive.google.com/drive/folders/1JREjS46DE65wU240Qp_KDhf2i60eUjee?usp=sharing)
 
