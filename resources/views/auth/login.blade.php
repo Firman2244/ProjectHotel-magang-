@@ -36,13 +36,14 @@
             @csrf
             <div>
                 <label for="email" class="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" class="w-full border-sky-200 dark:border-slate-600 bg-sky-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-white font-bold rounded-xl shadow-sm py-3 px-4 focus:border-sky-500 focus:ring-sky-500 transition-colors duration-300">
+                <input id="email" type="email" name="email" value="{{ old('email', request('email')) }}" required autofocus autocomplete="username" class="w-full border-sky-200 dark:border-slate-600 bg-sky-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-white font-bold rounded-xl shadow-sm py-3 px-4 focus:border-sky-500 focus:ring-sky-500 transition-colors duration-300">
                 <x-input-error :messages="$errors->get('email')" class="mt-2 text-rose-600 dark:text-rose-400" />
             </div>
 
             <div>
                 <div class="flex justify-between items-center mb-2">
                     <label for="password" class="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
+                    <a href="{{ route('password.request') }}" class="text-xs font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 transition-colors duration-300">Lupa Password?</a>
                 </div>
                 <input id="password" type="password" name="password" required autocomplete="current-password" class="w-full border-sky-200 dark:border-slate-600 bg-sky-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-white font-bold rounded-xl shadow-sm py-3 px-4 focus:border-sky-500 focus:ring-sky-500 transition-colors duration-300">
                 <x-input-error :messages="$errors->get('password')" class="mt-2 text-rose-600 dark:text-rose-400" />
